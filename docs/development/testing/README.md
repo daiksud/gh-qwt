@@ -17,6 +17,8 @@ Testing strategy for `gh-qwt`, including unit tests for pure logic and offline i
 - [Unit tests](#unit-tests)
 - [Offline integration tests](#offline-integration-tests)
 - [How to run](#how-to-run)
+- [Local smoke test](#local-smoke-test)
+- [Manual verification with the gh extension](#manual-verification-with-the-gh-extension)
 
 ## Testing philosophy
 
@@ -159,4 +161,60 @@ cargo test --test cli -- --nocapture
 ```
 
 > [!NOTE]
-> `assert_cmd` is useful for CLI integration tests, and `tempfile` is useful for isolated temporary test directories. Add test dependencies only when the Rust test suite is introduced.
+> The test suite uses `assert_cmd` (spawn the built binary), `predicates` (assert on output),
+> and `tempfile` (isolated temporary directories). These are already declared under
+> `[dev-dependencies]` in `Cargo.toml`.
+
+## Local smoke test
+
+For a quick, visible end-to-end check, run the smoke-test script:
+
+```bash
+script/smoke-test.sh
+```
+
+It builds the binary and drives the full command lifecycle
+(`root` → `get` → `add` → `list` → `path` → `rm` → `prune`) against a **local** source
+repository, printing a ✓/✗ for each check and exiting non-zero if any fail.
+
+> [!NOTE]
+> The script is fully **offline** — no network and no GitHub authentication are required. It runs
+> entirely inside a temporary directory (cleaned up on exit) and never touches your real qwt root
+> or your installed `gh` extensions, so it is safe to run repeatedly.
+
+Use it to sanity-check a change before opening a pull request; `cargo test` remains the
+authoritative, assertion-based suite.
+
+## Manual verification with the gh extension
+
+To try the real `gh qwt` entry point (this also exercises default-branch detection via `gh api`
+against a real repository), install the local checkout as a GitHub CLI extension:
+
+```bash
+# Build ./gh-qwt and install this directory as a local extension.
+script/build.sh
+gh extension install .
+
+# Optional: keep experiments out of your usual root.
+export QWT_ROOT="$HOME/qwt-demo"
+
+# Exercise the commands against a real repository.
+gh qwt get OWNER/REPO           # bare clone + default-branch worktree
+gh qwt list
+gh qwt add my-branch --repo OWNER/REPO
+cd "$(gh qwt path OWNER/REPO/my-branch)"   # or use the qcd shell function
+gh qwt rm my-branch --delete-branch
+gh qwt prune OWNER/REPO
+
+# Remove the local extension when finished.
+gh extension remove qwt
+```
+
+> [!TIP]
+> After editing the code, rebuild and reinstall with `script/build.sh && gh extension install --force .`.
+> For a convenient `cd` into worktrees, see the
+> [shell integration guide](../../guides/shell-integration/) (the `qcd` function).
+
+> [!WARNING]
+> `gh qwt prune` permanently deletes a repository tree, including all of its worktrees. Point
+> `QWT_ROOT` at a scratch directory while experimenting.
