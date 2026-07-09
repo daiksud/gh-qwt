@@ -21,6 +21,7 @@ Use this guide when you already have a repository under your **qwt root** and wa
 - [List worktrees](#list-worktrees)
 - [Remove a worktree](#remove-a-worktree)
 - [Remove an entire repo](#remove-an-entire-repo)
+- [Clean up merged branches with `prune`](#clean-up-merged-branches-with-prune)
 - [See also](#see-also)
 
 ## Mental model
@@ -207,14 +208,15 @@ Remove a branch worktree from inside the repository:
 
 ```console
 $ cd ~/qwt/cli/cli/trunk
-$ gh qwt rm fix/parser
+$ gh qwt remove fix/parser
 ```
 
-By default, this removes the worktree directory. Use flags when you need stronger cleanup behavior:
+`rm` is an alias for `remove`, so `gh qwt rm fix/parser` does exactly the same thing. By default,
+this removes the worktree directory. Use flags when you need stronger cleanup behavior:
 
 ```console
-$ gh qwt rm fix/parser --force
-$ gh qwt rm fix/parser --delete-branch
+$ gh qwt remove fix/parser --force
+$ gh qwt remove fix/parser --delete-branch
 ```
 
 | Flag | Effect |
@@ -225,18 +227,46 @@ $ gh qwt rm fix/parser --delete-branch
 > [!WARNING]
 > `--force` can discard uncommitted work. Check `git status` in the worktree before using it.
 
-## Remove an entire repo
-
-Use `prune` only when you want to remove the whole repository tree from the qwt root:
+You don't have to `cd` into the repository first: from anywhere, name the worktree explicitly with
+`owner/repo/branch`:
 
 ```console
-$ gh qwt prune cli/cli
+$ gh qwt remove cli/cli/fix/parser
+```
+
+## Remove an entire repo
+
+Use `remove`/`rm` with just `owner/repo` (no branch) to remove the whole repository tree from the
+qwt root — this only works when you are *not* standing inside another qwt repository:
+
+```console
+$ gh qwt remove cli/cli
 ```
 
 This removes all worktrees for `cli/cli` and the `.bare` repository database.
 
 > [!CAUTION]
-> `gh qwt prune cli/cli` deletes `~/qwt/cli/cli/` entirely. It asks for confirmation unless you pass `-y` or `--force`. See the [`prune` CLI reference](../../references/cli/#prune) before using it.
+> `gh qwt remove cli/cli` deletes `~/qwt/cli/cli/` entirely. It asks for confirmation unless you pass `--force`. See the [`remove` CLI reference](../../references/cli/#remove) before using it.
+
+## Clean up merged branches with `prune`
+
+Once you merge a pull request and GitHub deletes its source branch, the local worktree for that
+branch is left behind. `prune` cleans those up automatically — it's modeled on real git's own
+`git worktree prune` and `git fetch --prune`, not on deleting a whole repository:
+
+```console
+$ cd ~/qwt/cli/cli/trunk
+$ gh qwt prune
+Fetching origin...
+The following worktrees are no longer on the remote and will be removed:
+  fix/parser
+Remove these worktrees and their local branches? [y/N]
+```
+
+`prune` takes no argument — like `git worktree prune`, it always works on the repository you're
+currently in. It only removes a worktree when its branch *had* a remote counterpart that is now
+gone; a branch you never pushed is left alone, and a worktree with uncommitted changes is skipped
+and reported instead of being force-removed. Pass `-y`/`--force` to skip the confirmation prompt.
 
 ## See also
 

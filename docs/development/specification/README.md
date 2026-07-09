@@ -29,7 +29,7 @@ Normative implementation contract for `gh-qwt`, the `gh qwt` GitHub CLI extensio
   - [`get`](#get)
   - [`add`](#add)
   - [`list`](#list)
-  - [`rm`](#rm)
+  - [`remove`](#remove)
   - [`root`](#root)
   - [`path`](#path)
   - [`prune`](#prune)
@@ -47,7 +47,7 @@ This page defines the behavior that the Phase-2 implementation MUST satisfy. It 
 $ gh qwt <command> [flags] [args]
 ```
 
-The command set is `get`, `add`, `list`, `rm`, `root`, `path`, and `prune`. Command-line flags and examples are listed in the [CLI reference](../../references/cli/).
+The command set is `get`, `add`, `list`, `remove` (aliased `rm`), `root`, `path`, and `prune`. Command-line flags and examples are listed in the [CLI reference](../../references/cli/).
 
 ## Terminology
 
@@ -137,7 +137,7 @@ Branch names containing `/` MUST create nested directories. The host MUST NOT be
 
 ## Repo discovery
 
-Commands that operate on the current repository, such as `add` and `rm`, MUST discover the qwt repository root unless an explicit `--repo` flag is supported and provided.
+Commands that operate on the current repository, such as `add`, `remove`/`rm`, and `prune`, MUST discover the qwt repository root unless an explicit `--repo` flag is supported and provided. For `remove`/`rm`, discovery is attempted first; if it fails, the argument MUST instead be parsed as an explicit `owner/repo` or `owner/repo/branch` spec (see [`remove`](#remove)). `prune` MUST always use discovery and accepts no repository argument.
 
 Discovery MUST:
 
@@ -322,30 +322,52 @@ Filtering (`<query>`, `--exact`) MUST apply before printing, and MUST be evaluat
 - Invalid flags: exit `2`.
 - Failure to inspect a qwt-managed repository: exit `1` unless the implementation explicitly treats unreadable entries as skippable warnings.
 
-### `rm`
+### `remove`
+
+`rm` is an alias for `remove`; both names are subject to the same requirements below.
 
 #### Preconditions
 
-- A branch name MUST be provided.
-- A qwt-managed repository MUST be discoverable from the current directory.
-- The target worktree MUST exist.
+- A `SPEC` argument MUST be provided: either a branch name, or an explicit `owner/repo` or `owner/repo/branch` spec.
+- If the current working directory is inside a qwt-managed repository (per [Repo discovery](#repo-discovery)), `SPEC` MUST be treated as a branch name for that repository in its entirety, regardless of how many `/` it contains.
+- Otherwise, `SPEC` MUST be parsed the same way as `path`'s argument: exactly 2 non-empty `/`-separated segments identify `owner/repo`; 3 or more identify `owner/repo/branch` (branch MAY itself contain `/`).
+- For a branch-name target, the target worktree MUST exist.
+- For an `owner/repo` target, the target MUST be a qwt-managed repository under the qwt root.
 
 #### Steps and effects
 
-1. Discover the repository directory.
+For a branch-name target (discovered or explicit `owner/repo/branch`):
+
+1. Resolve the repository directory (by discovery, or by building `<qwt_root>/<owner>/<repo>`).
 2. Build the target worktree path for the branch.
 3. Run `git worktree remove <path>`.
 4. If `--force` is provided, pass the appropriate git force option.
 5. If `--delete-branch` is provided, delete the local branch with `git branch -D <branch>` after successful worktree removal.
 
+For an explicit `owner/repo` target:
+
+1. Resolve the qwt root and build `<qwt_root>/<owner>/<repo>`.
+2. Verify that the target is qwt-managed by checking `.bare` and the `.git` pointer.
+3. Ask for confirmation unless `--force` is provided.
+4. Remove the entire repository directory, including all worktrees and `.bare`.
+
 #### Output
 
-`rm` MAY print the removed worktree path or a concise confirmation. It MUST write errors to stderr.
+For a branch-name target, `remove`/`rm` MAY print the removed worktree path or a concise confirmation.
+
+For an `owner/repo` target, without force `remove`/`rm` SHOULD prompt:
+
+```console
+$ gh qwt remove cli/cli
+Remove ~/qwt/cli/cli and all worktrees? [y/N]
+```
+
+With force, output MAY be a concise confirmation. `remove`/`rm` MUST write errors to stderr.
 
 #### Errors and exit codes
 
-- Missing branch or invalid flags: exit `2`.
-- Discovery failure, missing worktree, uncommitted changes without `--force`, branch deletion failure, or git failure: exit `1`.
+- Missing SPEC, a SPEC that is neither a discoverable branch name nor a valid `owner/repo[/branch]` spec, or invalid flags: exit `2`.
+- Discovery failure for a branch-name target, missing worktree, uncommitted changes without `--force`, branch deletion failure, target not qwt-managed, confirmation declined, filesystem removal failure, or git failure: exit `1`.
 
 ### `root`
 
@@ -407,32 +429,46 @@ $ gh qwt path cli/cli/fix/parser
 
 #### Preconditions
 
-- A repo argument `owner/repo` MUST be provided.
-- The target MUST resolve under the qwt root.
+- No positional arguments are accepted; `prune` always operates on the repository discovered from the current directory (see [Repo discovery](#repo-discovery)).
+- A qwt-managed repository MUST be discoverable from the current directory.
 
 #### Steps and effects
 
-1. Resolve the qwt root.
-2. Build `<qwt_root>/<owner>/<repo>`.
-3. Verify that the target is qwt-managed by checking `.bare` and the `.git` pointer.
-4. Ask for confirmation unless `-y` or `--force` is provided.
-5. Remove the entire repository directory, including all worktrees and `.bare`.
+1. Discover the repository directory.
+2. Read the default branch from the bare repository's `HEAD`; it MUST be excluded from pruning.
+3. Run `git fetch origin --prune` to refresh remote-tracking refs.
+4. Run `git worktree prune` to remove administrative metadata for worktree directories that no longer exist on disk.
+5. For each remaining worktree that is not the default branch and not a detached `HEAD`, it is a candidate only if `branch.<name>.remote` is configured (it had an upstream) AND the corresponding `origin/<name>` no longer exists. A branch that never had an upstream configured MUST NOT be treated as a candidate, even though it will also appear absent from `origin`.
+6. A candidate whose worktree has uncommitted changes or untracked files MUST be skipped and reported, not removed.
+7. If no candidates remain, print a message indicating there is nothing to prune and exit successfully without prompting.
+8. Otherwise, list the candidates and ask for confirmation unless `-y` or `--force` is provided, then remove each candidate's worktree (`git worktree remove`) and its local branch (`git branch -D`).
+
+`prune` MUST NOT use an ancestor or "is merged" check against the default branch as an additional gate: because a squash- or rebase-merged branch's commits are not ancestors of the resulting commit, such a check would incorrectly treat a legitimately merged-and-cleaned-up branch as unsafe.
 
 #### Output
 
-Without force, `prune` SHOULD prompt:
+Without force, `prune` SHOULD list the candidates and prompt:
 
 ```console
-$ gh qwt prune cli/cli
-Remove ~/qwt/cli/cli and all worktrees? [y/N]
+$ gh qwt prune
+The following worktrees are no longer on the remote and will be removed:
+  fix/parser
+Remove these worktrees and their local branches? [y/N]
 ```
 
-With force, output MAY be a concise confirmation.
+With nothing to prune:
+
+```console
+$ gh qwt prune
+Nothing to prune.
+```
+
+With force, output MAY be a concise confirmation per removed worktree.
 
 #### Errors and exit codes
 
-- Missing repo, malformed repo, or invalid flags: exit `2`.
-- Target not found, target not qwt-managed, confirmation declined, or filesystem removal failure: exit `1`.
+- Invalid flags: exit `2`.
+- Repository discovery failure, fetch failure, or git failure: exit `1`.
 
 ## Exit codes
 
@@ -466,3 +502,4 @@ With force, output MAY be a concise confirmation.
 - [ADR 0004: Bare repo plus per-branch worktree layout](../adr/0004-bare-repo-plus-per-branch-worktree-layout/)
 - [ADR 0009: Default branch detection strategy](../adr/0009-default-branch-detection-strategy/)
 - [ADR 0012: Flat, query-filterable `list` output modeled on `ghq list`](../adr/0012-flat-queryable-list-output/)
+- [ADR 0013: Unify `rm` into `remove`; redefine `prune` around real git's own "prune" semantics](../adr/0013-remove-rm-unification-and-prune-redefinition/)
