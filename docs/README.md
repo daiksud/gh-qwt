@@ -4,6 +4,11 @@ Documentation for **using** `gh qwt` — a GitHub CLI extension that clones each
 **bare** git database and gives every branch its own **worktree** directory
 (`<qwt_root>/<owner>/<repo>/<branch>`), so you can work on many branches side by side.
 
+> [!NOTE]
+> **GitHub only.** Unlike [ghq](https://github.com/x-motemen/ghq) (which supports many hosts and
+> version-control systems), `gh-qwt` is built specifically for GitHub — it is a GitHub CLI (`gh`)
+> extension and uses `gh` for authentication and GitHub API access.
+
 **New here?** Start with **[Getting started](guides/getting-started/)**.
 
 ## Map

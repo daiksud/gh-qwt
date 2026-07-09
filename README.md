@@ -6,6 +6,12 @@
 **worktree directory**, so you can work on many branches side by side without stashing,
 re-cloning, or thrashing a single working tree.
 
+> [!NOTE]
+> **Built for GitHub.** Unlike [ghq](https://github.com/x-motemen/ghq), which manages repositories
+> across many hosts and version-control systems, `gh-qwt` targets **GitHub exclusively**: it ships as
+> a [GitHub CLI](https://cli.github.com/) (`gh`) extension and relies on `gh` for authentication and
+> GitHub API access.
+
 ```console
 $ gh qwt get cli/cli
 ~/qwt/cli/cli/trunk          # worktree for the default branch
