@@ -43,7 +43,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -54,8 +54,22 @@ jobs:
       - name: Cache cargo artifacts
         uses: Swatinem/rust-cache@v2
 
-      - name: Run tests
-        run: cargo test --locked
+      # Compile everything (including the integration test target) on every OS.
+      - name: Build
+        run: cargo build --locked --all-targets
 
-      - name: Run smoke test
+      # Unit tests are platform-agnostic and run everywhere. This is a
+      # binary-only crate, so the unit tests live in the `gh-qwt` bin target.
+      - name: Unit tests
+        run: cargo test --locked --bin gh-qwt
+
+      # The integration tests and smoke test drive the CLI against local
+      # `file://` repositories, which assume POSIX path semantics, so they run
+      # on Unix only.
+      - name: Integration tests
+        if: runner.os != 'Windows'
+        run: cargo test --locked --test cli
+
+      - name: Smoke test
+        if: runner.os != 'Windows'
         run: script/smoke-test.sh
