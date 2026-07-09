@@ -9,6 +9,7 @@ Developer notes for building `gh-qwt`, installing it locally as `gh qwt`, and pu
 - [Precompiled release model](#precompiled-release-model)
 - [Cross-compilation notes](#cross-compilation-notes)
 - [Example release workflow](#example-release-workflow)
+- [Release notes](#release-notes)
 - [Release checklist](#release-checklist)
 
 ## Prerequisites
@@ -234,6 +235,45 @@ jobs:
 > [!NOTE]
 > The [`cli/gh-extension-precompile`](https://github.com/cli/gh-extension-precompile) action is another option for packaging precompiled GitHub CLI extension assets.
 
+## Release notes
+
+Releases use GitHub's [automatically generated release notes](https://docs.github.com/en/repositories/releasing-projects-on-github/automatically-generated-release-notes). The release workflow passes `--generate-notes` to `gh release create`, and the grouping is configured in `.github/release.yml`.
+
+Notes are grouped into exactly four categories, driven by pull request labels:
+
+| Category | Pull request label |
+| --- | --- |
+| BREAKING CHANGE | `breaking-change` |
+| New Features | `enhancement` |
+| Bug Fixes | `bug` |
+| Others | everything else |
+
+`.github/release.yml`:
+
+```yaml
+changelog:
+  categories:
+    - title: BREAKING CHANGE
+      labels:
+        - breaking-change
+    - title: New Features
+      labels:
+        - enhancement
+    - title: Bug Fixes
+      labels:
+        - bug
+    - title: Others
+      labels:
+        - "*"
+```
+
+> [!IMPORTANT]
+> GitHub groups each pull request by its **labels**, not by commit message type. Keep labels aligned
+> with the [Conventional Commits](../contributing/#commit-messages) type: `feat` → `enhancement`,
+> `fix` → `bug`, breaking changes → `breaking-change`. A pull request is placed in the first matching
+> category, so `breaking-change` is listed first. The non-default `breaking-change` label must be
+> created in the repository.
+
 ## Release checklist
 
 - [ ] Update the crate version in `Cargo.toml`.
@@ -243,3 +283,4 @@ jobs:
 - [ ] Verify release assets use the required `gh-qwt-<os>-<arch>[.exe]` names.
 - [ ] Test published installation with `gh extension install daiksud/gh-qwt`.
 - [ ] Test upgrade behavior with `gh extension upgrade qwt`.
+- [ ] Confirm merged pull requests are labeled so release notes categorize correctly.

@@ -119,9 +119,30 @@ cargo clippy -- -D warnings
 
 ## Commit and pull request conventions
 
+### Commit messages
+
+Commit messages **MUST** follow [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/):
+
+```text
+<type>[optional scope][!]: <description>
+
+[optional body]
+
+[optional footer(s)]
+```
+
+- Common `type`s: `feat`, `fix`, `docs`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`.
+- Use `feat` and `fix` **only** for changes to the product itself. For tooling, CI, or docs, use `build`, `ci`, `docs`, `chore`, and similar.
+- Mark breaking changes with a `!` after the type/scope (for example `feat!:`) and/or a `BREAKING CHANGE:` footer.
+- Write the description in the imperative mood, e.g. `feat: add get command`.
+
+### Pull requests
+
 - Keep pull requests small and focused.
-- Use imperative commit subjects, such as `Add qwt root resolution tests`.
-- Conventional Commits are encouraged when they improve clarity, for example `docs: add testing guide` or `feat: add get command skeleton`.
+- Label each pull request so [release notes](../building-and-releasing/#release-notes) categorize correctly:
+  - `enhancement` for features (`feat`)
+  - `bug` for fixes (`fix`)
+  - `breaking-change` for breaking changes
 - Reference the relevant specification or documentation section in the pull request body.
 - Include tests for behavior changes.
 - Update documentation in the same pull request when behavior, commands, or release steps change.
@@ -130,6 +151,8 @@ cargo clippy -- -D warnings
 Pull request checklist:
 
 - [ ] The change is focused and easy to review.
+- [ ] Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/).
+- [ ] The pull request is labeled by change type (`enhancement`, `bug`, or `breaking-change`) for release notes.
 - [ ] `cargo fmt --check` passes, when Rust code exists.
 - [ ] `cargo clippy -- -D warnings` passes, when Rust code exists.
 - [ ] `cargo test` passes, when tests exist.

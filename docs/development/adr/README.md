@@ -38,3 +38,4 @@ old one `Superseded`.
 | [0008](0008-shell-integration-for-cd/) | Shell integration for `cd` | Accepted |
 | [0009](0009-default-branch-detection-strategy/) | Default-branch detection strategy | Accepted |
 | [0010](0010-release-and-distribution/) | Release & distribution | Accepted |
+| [0011](0011-conventional-commits-and-release-notes/) | Conventional Commits & automated release notes | Accepted |
