@@ -39,7 +39,7 @@ $ git --version
 
 ## Local build and install
 
-`gh-qwt` is planned as a Rust precompiled binary extension for GitHub CLI. During local development, build the release binary, copy it to the repository root as `gh-qwt`, then install the extension from the local checkout.
+`gh-qwt` is a Rust precompiled binary extension for GitHub CLI. During local development, build the release binary, copy it to the repository root as `gh-qwt`, then install the extension from the local checkout.
 
 ```bash
 cargo build --release
