@@ -1,0 +1,354 @@
+//! Offline integration tests for the `gh qwt` CLI.
+//!
+//! These tests build the real binary and run it against a local `file://`
+//! source repository, so they need `git` but no network access. See
+//! `docs/development/testing/README.md`.
+
+use assert_cmd::Command;
+use std::path::{Path, PathBuf};
+use std::process::Command as StdCommand;
+use tempfile::TempDir;
+
+/// A prepared test environment: a local source repo plus a qwt root.
+struct Env {
+    _tmp: TempDir,
+    /// `file://` URL of the source repository.
+    src_url: String,
+    /// Path to the source repository (for direct git assertions).
+    src: PathBuf,
+    /// The qwt root passed to the CLI via `QWT_ROOT`.
+    root: PathBuf,
+}
+
+impl Env {
+    /// Create a source repo at `<tmp>/acme/widget` with default branch `main`
+    /// and an extra branch `feature/x`, plus an empty qwt root at `<tmp>/root`.
+    fn new() -> Env {
+        let tmp = tempfile::tempdir().unwrap();
+        let src = tmp.path().join("acme").join("widget");
+        std::fs::create_dir_all(&src).unwrap();
+
+        git(&src, &["init", "-q", "-b", "main"]);
+        // Disable signing and set an identity so commits work in any environment.
+        git(
+            &src,
+            &[
+                "-c",
+                "user.email=test@example.com",
+                "-c",
+                "user.name=Test",
+                "-c",
+                "commit.gpgsign=false",
+                "commit",
+                "-q",
+                "--allow-empty",
+                "-m",
+                "init",
+            ],
+        );
+        git(&src, &["branch", "feature/x"]);
+
+        let root = tmp.path().join("root");
+        let src_url = format!("file://{}", src.display());
+        Env {
+            _tmp: tmp,
+            src_url,
+            src,
+            root,
+        }
+    }
+
+    /// A `gh-qwt` command with `QWT_ROOT` pointed at this env's root.
+    fn cmd(&self) -> Command {
+        let mut cmd = Command::cargo_bin("gh-qwt").unwrap();
+        cmd.env("QWT_ROOT", &self.root);
+        cmd
+    }
+
+    /// A `gh-qwt` command whose working directory is inside the repo tree, to
+    /// exercise repository discovery.
+    fn cmd_in(&self, dir: &Path) -> Command {
+        let mut cmd = self.cmd();
+        cmd.current_dir(dir);
+        cmd
+    }
+
+    fn repo_dir(&self) -> PathBuf {
+        self.root.join("acme").join("widget")
+    }
+
+    fn worktree(&self, branch: &str) -> PathBuf {
+        branch
+            .split('/')
+            .fold(self.repo_dir(), |p, seg| p.join(seg))
+    }
+}
+
+fn git(dir: &Path, args: &[&str]) {
+    let status = StdCommand::new("git")
+        .current_dir(dir)
+        .args(args)
+        .status()
+        .expect("spawn git");
+    assert!(status.success(), "git {args:?} failed in {}", dir.display());
+}
+
+/// The branch a worktree currently has checked out.
+fn current_branch(worktree: &Path) -> String {
+    let out = StdCommand::new("git")
+        .current_dir(worktree)
+        .args(["branch", "--show-current"])
+        .output()
+        .expect("spawn git");
+    String::from_utf8_lossy(&out.stdout).trim().to_string()
+}
+
+#[test]
+fn get_creates_bare_repo_and_default_worktree() {
+    let env = Env::new();
+    env.cmd()
+        .args(["get", &env.src_url, "-b", "main"])
+        .assert()
+        .success();
+
+    let repo = env.repo_dir();
+    assert!(repo.join(".bare").is_dir(), ".bare should be a directory");
+
+    let pointer = std::fs::read_to_string(repo.join(".git")).unwrap();
+    assert_eq!(pointer, "gitdir: ./.bare\n", ".git pointer contents");
+
+    let wt = env.worktree("main");
+    assert!(wt.is_dir(), "default-branch worktree should exist");
+    assert_eq!(current_branch(&wt), "main", "worktree is on a real branch");
+}
+
+#[test]
+fn get_without_branch_detects_default() {
+    // No `-b`: default-branch detection tries `gh` then falls back to
+    // `git ls-remote --symref`, which works offline for a file:// source.
+    let env = Env::new();
+    env.cmd().args(["get", &env.src_url]).assert().success();
+    assert!(env.worktree("main").is_dir());
+    assert_eq!(current_branch(&env.worktree("main")), "main");
+}
+
+#[test]
+fn get_rejects_existing_repository() {
+    let env = Env::new();
+    env.cmd()
+        .args(["get", &env.src_url, "-b", "main"])
+        .assert()
+        .success();
+    // A second get into the same destination must fail (exit 1).
+    env.cmd()
+        .args(["get", &env.src_url, "-b", "main"])
+        .assert()
+        .failure()
+        .code(1);
+}
+
+#[test]
+fn get_rejects_invalid_spec_with_exit_2() {
+    let env = Env::new();
+    env.cmd().args(["get", "a/b/c"]).assert().code(2);
+}
+
+#[test]
+fn add_creates_existing_and_new_branch_worktrees() {
+    let env = Env::new();
+    env.cmd()
+        .args(["get", &env.src_url, "-b", "main"])
+        .assert()
+        .success();
+
+    // Existing branch present at clone time -> attach.
+    env.cmd()
+        .args(["add", "--repo", "acme/widget", "feature/x"])
+        .assert()
+        .success();
+    assert_eq!(current_branch(&env.worktree("feature/x")), "feature/x");
+
+    // Brand-new branch, discovered from within the repo tree.
+    env.cmd_in(&env.worktree("main"))
+        .args(["add", "topic/new"])
+        .assert()
+        .success();
+    assert_eq!(current_branch(&env.worktree("topic/new")), "topic/new");
+}
+
+#[test]
+fn add_rejects_prefix_collision() {
+    let env = Env::new();
+    env.cmd()
+        .args(["get", &env.src_url, "-b", "main"])
+        .assert()
+        .success();
+    env.cmd()
+        .args(["add", "--repo", "acme/widget", "topic"])
+        .assert()
+        .success();
+    // `topic` already exists as a worktree; `topic/child` would nest under it.
+    env.cmd()
+        .args(["add", "--repo", "acme/widget", "topic/child"])
+        .assert()
+        .failure()
+        .code(1);
+}
+
+#[test]
+fn list_shows_repositories_and_worktrees() {
+    let env = Env::new();
+    env.cmd()
+        .args(["get", &env.src_url, "-b", "main"])
+        .assert()
+        .success();
+    env.cmd()
+        .args(["add", "--repo", "acme/widget", "feature/x"])
+        .assert()
+        .success();
+
+    env.cmd()
+        .arg("list")
+        .assert()
+        .success()
+        .stdout(predicates::str::contains("acme/widget"))
+        .stdout(predicates::str::contains("main"))
+        .stdout(predicates::str::contains("feature/x"));
+
+    // --full-path prints absolute worktree paths.
+    let wt = env.worktree("main");
+    env.cmd()
+        .args(["list", "--full-path"])
+        .assert()
+        .success()
+        .stdout(predicates::str::contains(wt.to_string_lossy().as_ref()));
+}
+
+#[test]
+fn path_prints_root_repo_and_worktree() {
+    let env = Env::new();
+
+    env.cmd()
+        .arg("root")
+        .assert()
+        .success()
+        .stdout(predicates::str::contains(
+            env.root.to_string_lossy().as_ref(),
+        ));
+
+    env.cmd()
+        .arg("path")
+        .assert()
+        .success()
+        .stdout(predicates::str::contains(
+            env.root.to_string_lossy().as_ref(),
+        ));
+
+    env.cmd()
+        .args(["path", "acme/widget"])
+        .assert()
+        .success()
+        .stdout(predicates::str::contains(
+            env.repo_dir().to_string_lossy().as_ref(),
+        ));
+
+    env.cmd()
+        .args(["path", "acme/widget/feature/x"])
+        .assert()
+        .success()
+        .stdout(predicates::str::contains(
+            env.worktree("feature/x").to_string_lossy().as_ref(),
+        ));
+
+    // Malformed argument -> exit 2.
+    env.cmd().args(["path", "solo"]).assert().code(2);
+}
+
+#[test]
+fn rm_removes_worktree_and_optionally_branch() {
+    let env = Env::new();
+    env.cmd()
+        .args(["get", &env.src_url, "-b", "main"])
+        .assert()
+        .success();
+    env.cmd()
+        .args(["add", "--repo", "acme/widget", "feature/x"])
+        .assert()
+        .success();
+
+    let wt = env.worktree("feature/x");
+    assert!(wt.is_dir());
+
+    env.cmd_in(&env.worktree("main"))
+        .args(["rm", "--delete-branch", "feature/x"])
+        .assert()
+        .success();
+    assert!(!wt.exists(), "worktree directory should be gone");
+
+    // The local branch should have been deleted too.
+    let out = StdCommand::new("git")
+        .current_dir(env.repo_dir())
+        .args(["branch", "--list", "feature/x"])
+        .output()
+        .unwrap();
+    assert!(
+        String::from_utf8_lossy(&out.stdout).trim().is_empty(),
+        "branch feature/x should be deleted"
+    );
+
+    // Removing a non-existent worktree fails (exit 1).
+    env.cmd_in(&env.worktree("main"))
+        .args(["rm", "does-not-exist"])
+        .assert()
+        .failure()
+        .code(1);
+}
+
+#[test]
+fn prune_removes_entire_repository() {
+    let env = Env::new();
+    env.cmd()
+        .args(["get", &env.src_url, "-b", "main"])
+        .assert()
+        .success();
+    assert!(env.repo_dir().exists());
+
+    env.cmd()
+        .args(["prune", "-y", "acme/widget"])
+        .assert()
+        .success();
+    assert!(
+        !env.repo_dir().exists(),
+        "repository tree should be removed"
+    );
+
+    // Pruning a non-existent repository fails (exit 1).
+    env.cmd()
+        .args(["prune", "-y", "no/such"])
+        .assert()
+        .failure()
+        .code(1);
+}
+
+#[test]
+fn prune_declined_keeps_repository() {
+    let env = Env::new();
+    env.cmd()
+        .args(["get", &env.src_url, "-b", "main"])
+        .assert()
+        .success();
+
+    // Answering "n" at the confirmation prompt leaves the repo intact.
+    env.cmd()
+        .args(["prune", "acme/widget"])
+        .write_stdin("n\n")
+        .assert()
+        .success();
+    assert!(env.repo_dir().exists(), "repository should still exist");
+}
+
+#[test]
+fn source_repo_is_initialized() {
+    let env = Env::new();
+    assert!(env.src.join(".git").exists());
+}
