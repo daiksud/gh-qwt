@@ -48,7 +48,7 @@ $ git --version
 
 See the [architecture documentation](../architecture/) for the broader design.
 
-Planned source layout:
+Source layout:
 
 ```text
 Cargo.toml

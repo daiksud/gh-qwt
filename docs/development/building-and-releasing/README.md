@@ -310,7 +310,7 @@ changelog:
 
 - [ ] Update the crate version in `Cargo.toml`.
 - [ ] Confirm user-facing docs match the released behavior.
-- [ ] Create an annotated tag such as `v0.1.0`.
+- [ ] Create an annotated tag such as `v0.9.0`.
 - [ ] Push the tag to trigger the release workflow.
 - [ ] Verify release assets use the required `gh-qwt-<os>-<arch>[.exe]` names.
 - [ ] Test published installation with `gh extension install daiksud/gh-qwt`.
