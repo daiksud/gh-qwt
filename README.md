@@ -14,10 +14,17 @@ $ gh qwt add fix/parser
 ~/qwt/cli/cli/fix/parser     # worktree for a new branch
 ```
 
+## Installation
+
 > [!NOTE]
-> **Project status — documentation & specification phase.**
-> This repository currently contains the design docs, specification, and ADRs under
-> [`docs/`](docs/). The Rust implementation follows in a later step, built to match these docs.
+> **gh-qwt is not yet released.** For now, build it from source by following
+> [Getting started](docs/guides/getting-started/).
+
+Once a release is available, install it as a GitHub CLI extension:
+
+```console
+$ gh extension install daiksud/gh-qwt
+```
 
 ## Layout at a glance
 
@@ -37,7 +44,6 @@ See the normative [directory layout reference](docs/references/directory-layout/
 | --- | --- |
 | 📖 [Guides](docs/guides/) | Task-oriented walkthroughs: install, worktrees, configuration, shell |
 | 📚 [References](docs/references/) | CLI, configuration, directory layout, glossary |
-| 🛠️ [Development](docs/development/) | Architecture, specification, building & releasing, testing, ADRs |
 
 **New here?** Start with **[Getting started](docs/guides/getting-started/)**.
 
@@ -54,6 +60,10 @@ See the normative [directory layout reference](docs/references/directory-layout/
 | `gh qwt prune <owner>/<repo>` | Remove an entire repository tree |
 
 Full details in the [CLI reference](docs/references/cli/).
+
+## Contributing
+
+Building `gh-qwt` or contributing changes? See the **[development documentation](docs/development/)**.
 
 ## License
 
