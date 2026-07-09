@@ -219,42 +219,59 @@ $ gh qwt add --repo cli/cli --from trunk fix/parser
 ### Synopsis
 
 ```console
-$ gh qwt list [flags]
+$ gh qwt list [flags] [<query>]
 ```
 
 ### Description
 
 List qwt-managed repositories and their worktrees.
 
-`list` iterates over `<root>/*/*`, treats each matching owner/repo directory as a repository, runs `git worktree list` for each repository, and prints the repositories plus their worktrees.
+`list` iterates over `<root>/*/*`, treats each matching owner/repo directory as a repository, runs `git worktree list` for each repository, and prints a flat, sorted list of `owner/repo/branch` — one entry per line, with no repository headers or indentation. This shape is modeled on [`ghq list`](https://github.com/x-motemen/ghq) and is safe to pipe directly into tools like `fzf`, `grep`, or `xargs`.
+
+If `<query>` is given, only entries whose `owner/repo/branch` contains that text are listed (case-insensitive unless `<query>` contains an uppercase letter — smartcase). `-e`/`--exact` requires `<query>` to exactly match `branch`, `repo/branch`, or `owner/repo/branch` instead of a substring.
 
 ### Arguments
 
 | Argument | Description |
 | --- | --- |
-| None | `list` does not accept positional arguments. |
+| `<query>` | Optional filter text. Substring match by default (smartcase); see `-e`/`--exact` for exact matching. |
 
 ### Flags
 
 | Flag | Description | Default |
 | --- | --- | --- |
-| `-p, --full-path` | Print absolute paths for worktrees. | Print compact paths |
+| `-e, --exact` | Require `<query>` to exactly match `branch`, `repo/branch`, or `owner/repo/branch`. Has no effect without `<query>`. | Off (substring match) |
+| `-p, --full-path` | Print absolute paths instead of `owner/repo/branch`. | Off |
 | `-h, --help` | Print help for `list`. | Off |
 
 ### Examples
 
 ```console
 $ gh qwt list
-cli/cli
-  trunk
-  fix/parser
+cli/cli/fix/parser
+cli/cli/trunk
 ```
 
 ```console
 $ gh qwt list --full-path
-cli/cli
-  ~/qwt/cli/cli/trunk
-  ~/qwt/cli/cli/fix/parser
+/Users/you/qwt/cli/cli/fix/parser
+/Users/you/qwt/cli/cli/trunk
+```
+
+```console
+$ gh qwt list fix
+cli/cli/fix/parser
+```
+
+```console
+$ gh qwt list --exact trunk
+cli/cli/trunk
+```
+
+Pipe straight into a fuzzy finder and `cd` into the selection:
+
+```bash
+d=$(gh qwt list --full-path | fzf) && cd "$d"
 ```
 
 ### Notes
@@ -262,6 +279,8 @@ cli/cli
 - `list` reads repositories under the resolved qwt root.
 - Repositories outside `<qwt_root>/<owner>/<repo>` are not included.
 - The command reports worktrees known to `git worktree list` for each bare repository.
+- Output is always sorted lexicographically, whether printing specs or full paths.
+- See the [shell integration guide](../../guides/shell-integration/) for more on piping `list` into a fuzzy picker.
 
 ## rm
 
@@ -419,8 +438,9 @@ cd "$(gh qwt path cli/cli/fix/parser)"
 
 ### Notes
 
-- `path` prints paths; it does not create repositories or worktrees.
+- `path` prints paths; it does not create repositories or worktrees, and does not check whether the target exists — it works equally well for a worktree that doesn't exist yet.
 - Use [`get`](#get) to clone a repository and [`add`](#add) to create additional worktrees.
+- For an *existing* worktree, [`list --full-path`](#list) (optionally filtered by query or piped into a fuzzy finder) prints the same path without a second `path` lookup. `path` remains useful for the `owner/repo` (repository directory) form and for computing a worktree path before it exists.
 
 ## prune
 

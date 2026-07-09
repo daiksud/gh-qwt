@@ -143,7 +143,9 @@ gh qwt add hotfix --repo cli/cli
 
 ## List worktrees
 
-Use `gh qwt list` to show known worktrees across repositories under your qwt root:
+Use `gh qwt list` to show known worktrees across repositories under your qwt root, as a flat,
+sorted list of `owner/repo/branch` — one entry per line, with no repository headers or
+indentation:
 
 ```console
 $ gh qwt list
@@ -152,10 +154,13 @@ $ gh qwt list
 Sample output:
 
 ```text
-cli/cli  trunk          ~/qwt/cli/cli/trunk
-cli/cli  fix/parser     ~/qwt/cli/cli/fix/parser
-cli/cli  feature/login  ~/qwt/cli/cli/feature/login
+cli/cli/feature/login
+cli/cli/fix/parser
+cli/cli/trunk
 ```
+
+Because the output has no headers or indentation, it's safe to pipe directly into a fuzzy finder
+or tools like `grep` and `xargs`; see the [shell integration guide](../shell-integration/#add-a-fuzzy-worktree-picker).
 
 Use `-p` or `--full-path` when you want absolute paths suitable for copying into scripts or `cd` commands:
 
@@ -167,17 +172,34 @@ $ gh qwt list -p
 <summary>Sample full-path output</summary>
 
 ```text
-/Users/alice/qwt/cli/cli/trunk
-/Users/alice/qwt/cli/cli/fix/parser
 /Users/alice/qwt/cli/cli/feature/login
+/Users/alice/qwt/cli/cli/fix/parser
+/Users/alice/qwt/cli/cli/trunk
 ```
 
 </details>
 
+Pass a `<query>` to filter by substring (case-insensitive unless `<query>` has an uppercase
+letter):
+
+```console
+$ gh qwt list fix
+cli/cli/fix/parser
+```
+
+Add `-e`/`--exact` to require `<query>` to exactly match `branch`, `repo/branch`, or
+`owner/repo/branch` instead of a substring:
+
+```console
+$ gh qwt list --exact trunk
+cli/cli/trunk
+```
+
 | Flag | Output |
 | --- | --- |
-| none | Worktree list using the default display format. |
-| `-p`, `--full-path` | Absolute worktree paths. |
+| none | Flat `owner/repo/branch` list. |
+| `-e`, `--exact` | Requires `<query>` to exactly match `branch`, `repo/branch`, or `owner/repo/branch` (no effect without a `<query>`). |
+| `-p`, `--full-path` | Absolute worktree paths instead of `owner/repo/branch`. |
 
 ## Remove a worktree
 

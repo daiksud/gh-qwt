@@ -10,6 +10,26 @@ notes on [GitHub Releases](https://github.com/daiksud/gh-qwt/releases) (see
 
 ## [Unreleased]
 
+### Changed
+
+- **Breaking:** `gh qwt list`'s default output is now a flat, sorted list of `owner/repo/branch`
+  (one entry per line, no repository header lines or indentation), matching the shape `ghq list`
+  uses. Previously, `list` grouped worktrees under an indented repository header.
+
+### Added
+
+- `gh qwt list` accepts an optional `<query>` argument for substring filtering (case-insensitive
+  unless the query contains an uppercase letter — smartcase) and a `-e`/`--exact` flag for exact
+  matching against `branch`, `repo/branch`, or `owner/repo/branch` — mirroring `ghq list`'s query
+  semantics.
+
+### Fixed
+
+- The fuzzy worktree picker recipe in the shell integration guide (`gh qwt list -p | fzf`) now
+  works correctly end to end. Previously, `list`'s grouped/indented output made selected lines
+  unusable for `cd`: repository header lines had no path, and worktree lines had leading
+  whitespace.
+
 ## [0.9.0] - 2026-07-09
 
 Initial release.
