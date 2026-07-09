@@ -298,16 +298,16 @@ Notes are grouped into exactly four categories, driven by pull request labels:
 ```yaml
 changelog:
   categories:
-    - title: BREAKING CHANGE
+    - title: 💥 BREAKING CHANGE
       labels:
         - breaking-change
-    - title: New Features
+    - title: ✨ New Features
       labels:
         - enhancement
-    - title: Bug Fixes
+    - title: 🐛 Bug Fixes
       labels:
         - bug
-    - title: Others
+    - title: 🧰 Others
       labels:
         - "*"
 ```
