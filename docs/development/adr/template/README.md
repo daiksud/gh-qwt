@@ -1,3 +1,12 @@
+---
+type: template
+title: "ADR-NNNN: &lt;short decision title&gt;"
+description: "Template for new Architecture Decision Records."
+resource: gh-qwt
+tags: [gh-qwt, adr, template]
+timestamp: 2026-07-09
+---
+
 <!--
 ADR template. Copy this directory to `NNNN-short-slug/` and fill in the sections.
 Keep each ADR focused on a single decision. Prefer prose over bullet-dumps in Context.

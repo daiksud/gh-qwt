@@ -1,3 +1,12 @@
+---
+type: index
+title: "Development"
+description: "Developer and maintainer documentation for gh-qwt: architecture, specification, building, contributing, testing, and ADRs."
+resource: gh-qwt
+tags: [gh-qwt, development, index]
+timestamp: 2026-07-09
+---
+
 # Development
 
 Documentation for contributors and maintainers: how `gh-qwt` is designed, specified, built,

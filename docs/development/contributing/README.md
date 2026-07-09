@@ -1,3 +1,12 @@
+---
+type: guide
+title: "Contributing"
+description: "Development environment, code style, testing, documentation conventions, and commit and pull request rules."
+resource: gh-qwt
+tags: [gh-qwt, development, contributing]
+timestamp: 2026-07-09
+---
+
 # Contributing
 
 Guidelines for contributing code, tests, and documentation to `gh-qwt`.

@@ -1,3 +1,12 @@
+---
+type: guide
+title: "Configuration"
+description: "Choose where gh qwt stores repositories using QWT_ROOT or the qwt.root git config."
+resource: gh-qwt
+tags: [gh-qwt, guide, configuration]
+timestamp: 2026-07-09
+---
+
 # Configuration
 
 Use this guide to choose where `gh qwt` stores cloned repositories and their worktrees.

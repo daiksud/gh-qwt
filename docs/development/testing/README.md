@@ -1,3 +1,12 @@
+---
+type: guide
+title: "Testing"
+description: "Unit and offline integration testing strategy for gh-qwt."
+resource: gh-qwt
+tags: [gh-qwt, development, testing]
+timestamp: 2026-07-09
+---
+
 # Testing
 
 Testing strategy for `gh-qwt`, including unit tests for pure logic and offline integration tests for git/filesystem behavior.

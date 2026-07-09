@@ -1,3 +1,12 @@
+---
+type: reference
+title: "Directory layout reference"
+description: "The normative on-disk layout of a qwt root: bare repository, .git pointer, and per-branch worktrees."
+resource: gh-qwt
+tags: [gh-qwt, reference, directory-layout]
+timestamp: 2026-07-09
+---
+
 # Directory layout reference
 
 Normative reference for the on-disk layout created by `gh qwt`.

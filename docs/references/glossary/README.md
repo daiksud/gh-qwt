@@ -1,3 +1,12 @@
+---
+type: reference
+title: "Glossary"
+description: "Definitions of key gh-qwt terms such as qwt root, bare repository, and worktree."
+resource: gh-qwt
+tags: [gh-qwt, reference, glossary]
+timestamp: 2026-07-09
+---
+
 # Glossary
 
 Alphabetical definitions for terms used in the `gh-qwt` documentation.

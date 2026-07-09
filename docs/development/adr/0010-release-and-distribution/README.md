@@ -1,3 +1,12 @@
+---
+type: adr
+title: "ADR-0010: Publish precompiled release binaries for gh extension install"
+description: "Publish precompiled release binaries via GitHub Releases."
+resource: gh-qwt
+tags: [gh-qwt, adr, adr-0010]
+timestamp: 2026-07-09
+---
+
 # ADR-0010: Publish precompiled release binaries for gh extension install
 
 - **Status:** Accepted

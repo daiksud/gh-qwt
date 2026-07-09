@@ -1,3 +1,12 @@
+---
+type: adr
+title: "ADR-0011: Adopt Conventional Commits and GitHub automated release notes"
+description: "Adopt Conventional Commits and GitHub automated release notes."
+resource: gh-qwt
+tags: [gh-qwt, adr, adr-0011]
+timestamp: 2026-07-09
+---
+
 # ADR-0011: Adopt Conventional Commits and GitHub automated release notes
 
 - **Status:** Accepted

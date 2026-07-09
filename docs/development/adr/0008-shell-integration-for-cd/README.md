@@ -1,3 +1,12 @@
+---
+type: adr
+title: "ADR-0008: Provide shell integration for cd via path output"
+description: "Provide shell integration for cd via a path command."
+resource: gh-qwt
+tags: [gh-qwt, adr, adr-0008]
+timestamp: 2026-07-09
+---
+
 # ADR-0008: Provide shell integration for cd via path output
 
 - **Status:** Accepted

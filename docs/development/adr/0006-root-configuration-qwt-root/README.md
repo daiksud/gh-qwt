@@ -1,3 +1,12 @@
+---
+type: adr
+title: "ADR-0006: Resolve root from QWT_ROOT, qwt.root, then ~/qwt"
+description: "Resolve the qwt root from QWT_ROOT, qwt.root, then ~/qwt."
+resource: gh-qwt
+tags: [gh-qwt, adr, adr-0006]
+timestamp: 2026-07-09
+---
+
 # ADR-0006: Resolve root from QWT_ROOT, qwt.root, then ~/qwt
 
 - **Status:** Accepted

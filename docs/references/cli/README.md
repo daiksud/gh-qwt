@@ -1,3 +1,12 @@
+---
+type: reference
+title: "CLI reference"
+description: "Complete reference for every gh qwt command, argument, flag, and exit code."
+resource: gh-qwt
+tags: [gh-qwt, reference, cli]
+timestamp: 2026-07-09
+---
+
 # CLI reference
 
 Exhaustive command reference for `gh qwt`, the `gh-qwt` GitHub CLI extension.

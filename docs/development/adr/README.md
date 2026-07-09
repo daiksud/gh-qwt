@@ -1,3 +1,12 @@
+---
+type: index
+title: "Architecture Decision Records"
+description: "Index of Architecture Decision Records for gh-qwt."
+resource: gh-qwt
+tags: [gh-qwt, adr, index]
+timestamp: 2026-07-09
+---
+
 # Architecture Decision Records
 
 This directory records the significant architecture decisions for `gh-qwt` using lightweight

@@ -1,3 +1,12 @@
+---
+type: guide
+title: "Getting started with gh-qwt"
+description: "Install gh qwt, clone your first repository, and cd into the default-branch worktree."
+resource: gh-qwt
+tags: [gh-qwt, guide, getting-started]
+timestamp: 2026-07-09
+---
+
 # Getting started with gh-qwt
 
 Use this guide to install `gh qwt`, create your first qwt-managed checkout, enter the default-branch worktree, and verify that the expected bare repository and worktree layout were created under your qwt root.

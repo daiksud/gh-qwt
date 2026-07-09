@@ -1,3 +1,12 @@
+---
+type: guide
+title: "Working with worktrees"
+description: "Create, list, and remove per-branch worktrees with gh qwt."
+resource: gh-qwt
+tags: [gh-qwt, guide, working-with-worktrees]
+timestamp: 2026-07-09
+---
+
 # Working with worktrees
 
 Use this guide when you already have a repository under your **qwt root** and want to add, inspect, or remove branch worktrees.

@@ -1,3 +1,12 @@
+---
+type: adr
+title: "ADR-0002: Distribute as a gh CLI extension"
+description: "Distribute gh-qwt as a GitHub CLI extension."
+resource: gh-qwt
+tags: [gh-qwt, adr, adr-0002]
+timestamp: 2026-07-09
+---
+
 # ADR-0002: Distribute as a gh CLI extension
 
 - **Status:** Accepted

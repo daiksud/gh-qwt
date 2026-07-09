@@ -1,3 +1,12 @@
+---
+type: adr
+title: "ADR-0005: Use path layout without a host segment"
+description: "Use a path layout without a host segment."
+resource: gh-qwt
+tags: [gh-qwt, adr, adr-0005]
+timestamp: 2026-07-09
+---
+
 # ADR-0005: Use path layout without a host segment
 
 - **Status:** Accepted

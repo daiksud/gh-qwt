@@ -1,3 +1,12 @@
+---
+type: specification
+title: "Specification"
+description: "Normative behavior specification for each gh qwt command that the implementation must satisfy."
+resource: gh-qwt
+tags: [gh-qwt, development, specification]
+timestamp: 2026-07-09
+---
+
 # Specification
 
 Normative implementation contract for `gh-qwt`, the `gh qwt` GitHub CLI extension.

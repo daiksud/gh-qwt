@@ -1,3 +1,12 @@
+---
+type: reference
+title: "Configuration reference"
+description: "Configuration keys and environment variables that control the qwt root, with precedence."
+resource: gh-qwt
+tags: [gh-qwt, reference, configuration]
+timestamp: 2026-07-09
+---
+
 # Configuration reference
 
 Exhaustive configuration reference for how `gh qwt` resolves the **qwt root**: the top-level directory that contains qwt-managed repositories and worktrees.

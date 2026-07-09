@@ -1,3 +1,12 @@
+---
+type: adr
+title: "ADR-0009: Detect the default branch with gh api then ls-remote"
+description: "Detect the default branch with gh api, falling back to git ls-remote."
+resource: gh-qwt
+tags: [gh-qwt, adr, adr-0009]
+timestamp: 2026-07-09
+---
+
 # ADR-0009: Detect the default branch with gh api then ls-remote
 
 - **Status:** Accepted

@@ -1,3 +1,12 @@
+---
+type: adr
+title: "ADR-0004: Use a bare repo plus per-branch worktree layout"
+description: "Use a bare repository plus one worktree per branch."
+resource: gh-qwt
+tags: [gh-qwt, adr, adr-0004]
+timestamp: 2026-07-09
+---
+
 # ADR-0004: Use a bare repo plus per-branch worktree layout
 
 - **Status:** Accepted

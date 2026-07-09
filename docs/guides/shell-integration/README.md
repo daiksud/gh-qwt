@@ -1,3 +1,12 @@
+---
+type: guide
+title: "Shell integration"
+description: "Jump into worktrees with a qcd shell function and an optional fuzzy picker."
+resource: gh-qwt
+tags: [gh-qwt, guide, shell-integration]
+timestamp: 2026-07-09
+---
+
 # Shell integration
 
 Use shell helpers to make `cd`-ing into `gh qwt` worktrees ergonomic.

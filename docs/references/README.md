@@ -1,3 +1,12 @@
+---
+type: index
+title: "References"
+description: "Reference documentation for gh qwt commands, configuration, directory layout, and terminology."
+resource: gh-qwt
+tags: [gh-qwt, reference, index]
+timestamp: 2026-07-09
+---
+
 # References
 
 Information-oriented documentation: precise, exhaustive, and made for looking things up.

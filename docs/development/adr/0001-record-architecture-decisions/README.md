@@ -1,3 +1,12 @@
+---
+type: adr
+title: "ADR-0001: Record architecture decisions"
+description: "Record architecture decisions using lightweight ADRs."
+resource: gh-qwt
+tags: [gh-qwt, adr, adr-0001]
+timestamp: 2026-07-09
+---
+
 # ADR-0001: Record architecture decisions
 
 - **Status:** Accepted

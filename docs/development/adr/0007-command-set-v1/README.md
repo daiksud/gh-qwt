@@ -1,3 +1,12 @@
+---
+type: adr
+title: "ADR-0007: Ship the v1 command set"
+description: "Ship the v1 command set: get, add, list, rm, root, path, prune."
+resource: gh-qwt
+tags: [gh-qwt, adr, adr-0007]
+timestamp: 2026-07-09
+---
+
 # ADR-0007: Ship the v1 command set
 
 - **Status:** Accepted

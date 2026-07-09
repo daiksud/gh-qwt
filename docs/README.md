@@ -1,3 +1,12 @@
+---
+type: index
+title: "gh-qwt documentation"
+description: "Documentation for using gh qwt, a GitHub CLI extension that clones each repository as a bare git database with one worktree directory per branch."
+resource: gh-qwt
+tags: [gh-qwt, documentation, index]
+timestamp: 2026-07-09
+---
+
 # gh-qwt documentation
 
 Documentation for **using** `gh qwt` — a GitHub CLI extension that clones each repository once as a

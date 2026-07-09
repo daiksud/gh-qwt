@@ -1,3 +1,12 @@
+---
+type: adr
+title: "ADR-0003: Implement in Rust as a precompiled binary"
+description: "Implement gh-qwt in Rust as a precompiled binary."
+resource: gh-qwt
+tags: [gh-qwt, adr, adr-0003]
+timestamp: 2026-07-09
+---
+
 # ADR-0003: Implement in Rust as a precompiled binary
 
 - **Status:** Accepted

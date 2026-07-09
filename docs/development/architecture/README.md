@@ -1,3 +1,12 @@
+---
+type: reference
+title: "Architecture"
+description: "Module map, responsibilities, and command data flow for the gh-qwt implementation."
+resource: gh-qwt
+tags: [gh-qwt, development, architecture]
+timestamp: 2026-07-09
+---
+
 # Architecture
 
 Developer architecture notes for `gh-qwt`, a GitHub CLI extension that manages one bare repository plus one worktree directory per branch.

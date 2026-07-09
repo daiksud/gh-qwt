@@ -1,3 +1,12 @@
+---
+type: guide
+title: "Building and releasing"
+description: "Build gh-qwt locally, install it as a gh extension, cross-compile, and publish GitHub Releases."
+resource: gh-qwt
+tags: [gh-qwt, development, building-and-releasing]
+timestamp: 2026-07-09
+---
+
 # Building and releasing
 
 Developer notes for building `gh-qwt`, installing it locally as `gh qwt`, and publishing precompiled GitHub CLI extension releases.
