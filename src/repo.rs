@@ -122,11 +122,18 @@ pub fn repo_dir(root: &Path, owner: &str, repo: &str) -> PathBuf {
 ///
 /// A `branch` containing `/` produces nested directories.
 pub fn worktree_path(root: &Path, owner: &str, repo: &str, branch: &str) -> PathBuf {
+    worktree_in(&repo_dir(root, owner, repo), branch)
+}
+
+/// Build a worktree path under an existing repository directory.
+///
+/// A `branch` containing `/` produces nested directories. Useful when the
+/// repository directory is already known (e.g. from [`discover_repo_root`]).
+pub fn worktree_in(repo_dir: &Path, branch: &str) -> PathBuf {
     branch
         .split('/')
-        .fold(repo_dir(root, owner, repo), |path, segment| {
-            path.join(segment)
-        })
+        .filter(|segment| !segment.is_empty())
+        .fold(repo_dir.to_path_buf(), |path, segment| path.join(segment))
 }
 
 /// Return `true` if `dir` is a qwt-managed repository: it contains `.bare` and a

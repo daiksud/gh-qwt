@@ -174,6 +174,15 @@ pub fn local_branch_exists(repo_dir: &Path, branch: &str) -> Result<bool> {
     )
 }
 
+/// The repository's default branch, read from the bare repo's HEAD via
+/// `git symbolic-ref --short HEAD`.
+///
+/// After `git clone --bare`, the bare repo's HEAD points at the remote's
+/// default branch, so this is the natural base for new branches.
+pub fn default_branch_from_head(repo_dir: &Path) -> Result<String> {
+    output(Some(repo_dir), &["symbolic-ref", "--short", "HEAD"])
+}
+
 /// List the worktrees of the repository at `repo_dir`
 /// (parse `git -C <repo_dir> worktree list --porcelain`).
 pub fn worktree_list(repo_dir: &Path) -> Result<Vec<Worktree>> {
