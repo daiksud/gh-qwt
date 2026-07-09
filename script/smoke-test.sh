@@ -49,14 +49,27 @@ assert_exit() {
 step "Build"
 cargo build --quiet
 BIN="$REPO_ROOT/target/debug/gh-qwt"
-[ -x "$BIN" ] || { echo "build failed: $BIN not found"; exit 1; }
+# cargo appends .exe on Windows.
+[ -x "$BIN" ] || BIN="$BIN.exe"
+[ -x "$BIN" ] || { echo "build failed: gh-qwt binary not found under target/debug"; exit 1; }
 echo "binary: ${BIN#"$REPO_ROOT"/}"
 qwt() { "$BIN" "$@"; }
+
+# Normalize a path so the (possibly native-Windows) gh-qwt binary and this shell
+# agree on it. On Git Bash / MSYS (Windows), `cygpath -m` yields a mixed path
+# (e.g. C:/Users/foo) understood by both the native binary and MSYS tools;
+# elsewhere the path passes through unchanged.
+to_native() {
+  if command -v cygpath >/dev/null 2>&1; then cygpath -m "$1"; else printf '%s' "$1"; fi
+}
 
 # Isolated workspace, cleaned up on exit.
 WORK="$(mktemp -d)"
 cleanup() { rm -rf "$WORK"; }
 trap cleanup EXIT
+
+# Use a path form that both the shell and the native binary understand.
+WORK="$(to_native "$WORK")"
 
 # A local source repository so the test needs no network or gh auth.
 # owner/repo are derived from the path tail -> acme/widget.
@@ -67,7 +80,12 @@ git -C "$SRC" \
   -c user.email=dev@example.com -c user.name=dev -c commit.gpgsign=false \
   commit -q --allow-empty -m "init"
 git -C "$SRC" branch feature/login
-SRC_URL="file://$SRC"
+# Build a file:// URL with a leading slash before the path so both POSIX
+# (/abs -> file:///abs) and Windows mixed (C:/x -> file:///C:/x) forms are valid.
+case "$SRC" in
+  /*) SRC_URL="file://$SRC" ;;
+  *) SRC_URL="file:///$SRC" ;;
+esac
 
 export QWT_ROOT="$WORK/qwt"
 REPO="$QWT_ROOT/acme/widget"

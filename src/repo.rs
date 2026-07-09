@@ -159,6 +159,13 @@ pub fn is_qwt_repo(dir: &Path) -> bool {
 pub fn discover_repo_root(start: &Path) -> Result<PathBuf> {
     let mut current = start.canonicalize().unwrap_or_else(|_| start.to_path_buf());
 
+    // `std::fs::canonicalize` on Windows returns an extended-length path
+    // (\\?\C:\...). Strip that prefix so downstream paths and git invocations
+    // use the conventional form. This has no effect on non-Windows paths.
+    if let Some(stripped) = current.to_str().and_then(|s| s.strip_prefix(r"\\?\")) {
+        current = PathBuf::from(stripped);
+    }
+
     loop {
         if is_qwt_repo(&current) {
             return Ok(current);
