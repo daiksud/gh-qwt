@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-labelledby="title desc">
+  <title id="title">qwt directory layout for cli/cli</title>
+  <desc id="desc">Directory tree showing ~/qwt/cli/cli containing .bare, .git pointing to gitdir: ./.bare, trunk, and fix/parser.</desc>
+  <rect width="640" height="360" fill="#ffffff"/>
+  <style>
+    text { font-family: monospace; fill: #1f2328; }
+    .title { font-size: 22px; font-weight: 700; }
+    .label { font-size: 16px; font-weight: 700; }
+    .note { font-size: 13px; fill: #57606a; }
+    .box { fill: #f6f8fa; stroke: #8c959f; stroke-width: 1.5; rx: 8; }
+    .root { fill: #ddf4ff; stroke: #0969da; }
+    .bare { fill: #fff8c5; stroke: #9a6700; }
+    .worktree { fill: #dafbe1; stroke: #1a7f37; }
+    .pointer { fill: #fbefff; stroke: #8250df; }
+    .line { stroke: #57606a; stroke-width: 2; fill: none; }
+  </style>
+
+  <text x="32" y="38" class="title">gh-qwt directory layout</text>
+  <text x="32" y="62" class="note">Example: qwt root ~/qwt, repo cli/cli</text>
+
+  <rect x="32" y="88" width="576" height="48" class="box root"/>
+  <text x="52" y="118" class="label">~/qwt/cli/cli/</text>
+  <text x="318" y="118" class="note">repository directory (no host segment)</text>
+
+  <line x1="94" y1="136" x2="94" y2="318" class="line"/>
+
+  <line x1="94" y1="166" x2="130" y2="166" class="line"/>
+  <rect x="130" y="144" width="180" height="44" class="box bare"/>
+  <text x="148" y="171" class="label">.bare/</text>
+  <text x="328" y="171" class="note">bare git database</text>
+
+  <line x1="94" y1="222" x2="130" y2="222" class="line"/>
+  <rect x="130" y="200" width="250" height="44" class="box pointer"/>
+  <text x="148" y="227" class="label">.git</text>
+  <text x="396" y="227" class="note">file: gitdir: ./.bare</text>
+
+  <line x1="94" y1="278" x2="130" y2="278" class="line"/>
+  <rect x="130" y="256" width="180" height="44" class="box worktree"/>
+  <text x="148" y="283" class="label">trunk/</text>
+  <text x="328" y="283" class="note">default-branch worktree</text>
+
+  <line x1="94" y1="318" x2="130" y2="318" class="line"/>
+  <rect x="130" y="296" width="180" height="44" class="box worktree"/>
+  <text x="148" y="323" class="label">fix/parser/</text>
+  <text x="328" y="323" class="note">branch worktree; slash name nests</text>
+</svg>
