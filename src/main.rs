@@ -26,13 +26,14 @@ enum Command {
     Add(commands::add::Args),
     /// List repositories and their worktrees.
     List(commands::list::Args),
-    /// Remove a worktree.
-    Rm(commands::rm::Args),
+    /// Remove a worktree, or an entire repository.
+    #[command(visible_alias = "rm")]
+    Remove(commands::remove::Args),
     /// Print the resolved qwt root.
     Root(commands::root::Args),
     /// Print a worktree path (for `cd`).
     Path(commands::path::Args),
-    /// Remove an entire repository tree.
+    /// Remove worktrees whose branch is gone from the remote.
     Prune(commands::prune::Args),
 }
 
@@ -44,7 +45,7 @@ fn main() {
         Command::Get(args) => commands::get::run(args),
         Command::Add(args) => commands::add::run(args),
         Command::List(args) => commands::list::run(args),
-        Command::Rm(args) => commands::rm::run(args),
+        Command::Remove(args) => commands::remove::run(args),
         Command::Root(args) => commands::root::run(args),
         Command::Path(args) => commands::path::run(args),
         Command::Prune(args) => commands::prune::run(args),
