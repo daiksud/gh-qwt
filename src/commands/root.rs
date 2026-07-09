@@ -10,7 +10,8 @@ pub struct Args {}
 
 /// Run the `root` command.
 pub fn run(args: Args) -> Result<()> {
-    let _ = args;
-    // TODO(cmd-path): implement per specification (root printing).
-    anyhow::bail!("`root` is not yet implemented")
+    let Args {} = args;
+    let root = crate::config::resolve_root()?;
+    println!("{}", root.display());
+    Ok(())
 }

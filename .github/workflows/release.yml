@@ -1,0 +1,83 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.asset_name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            asset_name: gh-qwt-darwin-amd64
+            binary_name: gh-qwt
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            asset_name: gh-qwt-darwin-arm64
+            binary_name: gh-qwt
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            asset_name: gh-qwt-linux-amd64
+            binary_name: gh-qwt
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-musl
+            asset_name: gh-qwt-linux-arm64
+            binary_name: gh-qwt
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            asset_name: gh-qwt-windows-amd64.exe
+            binary_name: gh-qwt.exe
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install musl tools
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
+
+      - name: Build
+        run: cargo build --release --target '${{ matrix.target }}'
+
+      - name: Package asset
+        shell: bash
+        run: |
+          mkdir -p dist
+          cp 'target/${{ matrix.target }}/release/${{ matrix.binary_name }}' 'dist/${{ matrix.asset_name }}'
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset_name }}
+          path: dist/${{ matrix.asset_name }}
+          if-no-files-found: error
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download assets
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" ./dist/* --title "$GITHUB_REF_NAME" --generate-notes
