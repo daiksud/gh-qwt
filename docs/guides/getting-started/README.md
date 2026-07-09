@@ -40,14 +40,11 @@ Before you start, make sure you have:
 
 ### Published install
 
-When `gh-qwt` is released, install it as a GitHub CLI extension:
+Install `gh-qwt` as a GitHub CLI extension:
 
 ```console
 $ gh extension install daiksud/gh-qwt
 ```
-
-> [!NOTE]
-> `gh-qwt` is not yet released. The project is currently in the documentation and specification phase, so for now you should build and install it locally from source.
 
 ### Local install from source
 

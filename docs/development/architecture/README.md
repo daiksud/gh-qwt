@@ -39,7 +39,7 @@ For example, with qwt root `~/qwt`, repository `cli/cli`, default branch `trunk`
 ~/qwt/cli/cli/fix/parser
 ```
 
-The project is currently in the documentation and specification phase. The planned implementation is a Rust precompiled binary named `gh-qwt`.
+The project has completed its v1 implementation: all seven commands (`get`, `add`, `list`, `rm`, `root`, `path`, `prune`) are implemented as a Rust precompiled binary named `gh-qwt`.
 
 ## Extension model
 
@@ -51,7 +51,7 @@ $ gh qwt get cli/cli
 
 GitHub CLI resolves and executes the `gh-qwt` binary. `gh-qwt` owns command parsing, dispatch, path resolution, and orchestration of `git` and `gh` subprocesses.
 
-The binary is planned in Rust to provide:
+The binary is implemented in Rust to provide:
 
 - a single precompiled executable for distribution;
 - predictable startup behavior;

@@ -22,15 +22,13 @@ $ gh qwt add fix/parser
 
 ## Installation
 
-> [!NOTE]
-> **gh-qwt is not yet released.** For now, build it from source by following
-> [Getting started](docs/guides/getting-started/).
-
-Once a release is available, install it as a GitHub CLI extension:
+Install it as a GitHub CLI extension:
 
 ```console
 $ gh extension install daiksud/gh-qwt
 ```
+
+Building from source instead? See [Getting started](docs/guides/getting-started/).
 
 ## Layout at a glance
 
@@ -50,6 +48,7 @@ See the normative [directory layout reference](docs/references/directory-layout/
 | --- | --- |
 | 📖 [Guides](docs/guides/) | Task-oriented walkthroughs: install, worktrees, configuration, shell |
 | 📚 [References](docs/references/) | CLI, configuration, directory layout, glossary |
+| 📝 [Changelog](CHANGELOG.md) | Release history and notable changes |
 
 **New here?** Start with **[Getting started](docs/guides/getting-started/)**.
 
@@ -73,4 +72,4 @@ Building `gh-qwt` or contributing changes? See the **[development documentation]
 
 ## License
 
-To be decided.
+[MIT](LICENSE)
