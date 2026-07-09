@@ -54,8 +54,6 @@ jobs:
             os: ubuntu-latest
           - name: linux-arm64
             os: ubuntu-24.04-arm
-          - name: darwin-amd64
-            os: macos-13
           - name: darwin-arm64
             os: macos-14
           - name: windows-amd64

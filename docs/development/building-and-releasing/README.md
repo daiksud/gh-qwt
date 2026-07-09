@@ -109,11 +109,16 @@ Release assets must end with a `-<OS>-<ARCH>` suffix. Windows assets also need `
 
 | Rust target | OS | Arch | Asset name |
 | --- | --- | --- | --- |
-| `x86_64-apple-darwin` | `darwin` | `amd64` | `gh-qwt-darwin-amd64` |
 | `aarch64-apple-darwin` | `darwin` | `arm64` | `gh-qwt-darwin-arm64` |
 | `x86_64-unknown-linux-musl` | `linux` | `amd64` | `gh-qwt-linux-amd64` |
 | `aarch64-unknown-linux-musl` | `linux` | `arm64` | `gh-qwt-linux-arm64` |
 | `x86_64-pc-windows-msvc` | `windows` | `amd64` | `gh-qwt-windows-amd64.exe` |
+
+> [!NOTE]
+> **Intel macOS (`darwin-amd64`) is not supported.** GitHub Actions is
+> [retiring the `macos-13` (Intel) runner image](https://github.blog/changelog/2025-09-19-github-actions-macos-13-runner-image-is-closing-down/),
+> so there is no hosted runner to build or smoke-test `x86_64-apple-darwin`. macOS releases target
+> Apple Silicon (`aarch64-apple-darwin`) only.
 
 Architecture mapping:
 
@@ -135,14 +140,13 @@ OS mapping:
 ## Cross-compilation notes
 
 - Prefer `x86_64-unknown-linux-musl` and `aarch64-unknown-linux-musl` for Linux release binaries. `musl` produces static binaries and avoids glibc version compatibility issues.
-- Build both `x86_64-apple-darwin` and `aarch64-apple-darwin` for macOS users on Intel and Apple Silicon.
+- Build `aarch64-apple-darwin` for macOS users on Apple Silicon. Intel macOS (`x86_64-apple-darwin`) is not supported (see the note above).
 - Build `x86_64-pc-windows-msvc` for Windows users and keep the `.exe` extension in the release asset name.
 - Linux ARM64 can be built with a suitable linker/toolchain or with [`cross`](https://github.com/cross-rs/cross).
 
 Example target installation:
 
 ```bash
-rustup target add x86_64-apple-darwin
 rustup target add aarch64-apple-darwin
 rustup target add x86_64-unknown-linux-musl
 rustup target add aarch64-unknown-linux-musl
@@ -175,10 +179,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: macos-latest
-            target: x86_64-apple-darwin
-            asset_name: gh-qwt-darwin-amd64
-            binary_name: gh-qwt
           - os: macos-latest
             target: aarch64-apple-darwin
             asset_name: gh-qwt-darwin-arm64

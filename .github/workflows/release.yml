@@ -25,10 +25,6 @@ jobs:
       matrix:
         include:
           - os: macos-latest
-            target: x86_64-apple-darwin
-            asset_name: gh-qwt-darwin-amd64
-            binary_name: gh-qwt
-          - os: macos-latest
             target: aarch64-apple-darwin
             asset_name: gh-qwt-darwin-arm64
             binary_name: gh-qwt
