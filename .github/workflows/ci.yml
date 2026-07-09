@@ -1,0 +1,90 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  lint:
+    name: Format & Clippy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@4be7066ada62dd38de10e7b70166bc74ed198c30 # stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache cargo artifacts
+        uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
+
+      - name: Check formatting
+        run: cargo fmt --all --check
+
+      - name: Run clippy
+        run: cargo clippy --all-targets -- -D warnings
+
+  test:
+    name: Test (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # One runner per release target architecture
+        # (see docs/development/building-and-releasing).
+        include:
+          - name: linux-amd64
+            os: ubuntu-latest
+          - name: linux-arm64
+            os: ubuntu-24.04-arm
+          - name: darwin-arm64
+            os: macos-14
+          - name: windows-amd64
+            os: windows-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@4be7066ada62dd38de10e7b70166bc74ed198c30 # stable
+
+      - name: Cache cargo artifacts
+        uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
+
+      # Compile everything (including the integration test target) on every OS.
+      - name: Build
+        run: cargo build --locked --all-targets
+
+      # Unit tests are platform-agnostic and run everywhere. This is a
+      # binary-only crate, so the unit tests live in the `gh-qwt` bin target.
+      - name: Unit tests
+        run: cargo test --locked --bin gh-qwt
+
+      # The Rust integration tests build `file://` URLs from native paths, which
+      # currently assume POSIX semantics, so they run on Unix only.
+      - name: Integration tests
+        if: runner.os != 'Windows'
+        run: cargo test --locked --test cli
+
+      # The smoke test runs on every target architecture. `shell: bash` uses Git
+      # Bash on Windows, and the script normalizes paths so the native binary
+      # and the shell agree on them.
+      - name: Smoke test
+        run: script/smoke-test.sh

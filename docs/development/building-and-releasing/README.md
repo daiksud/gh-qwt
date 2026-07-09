@@ -18,6 +18,7 @@ Developer notes for building `gh-qwt`, installing it locally as `gh qwt`, and pu
 - [Precompiled release model](#precompiled-release-model)
 - [Cross-compilation notes](#cross-compilation-notes)
 - [Example release workflow](#example-release-workflow)
+- [GitHub Actions version pinning policy](#github-actions-version-pinning-policy)
 - [Release notes](#release-notes)
 - [Release checklist](#release-checklist)
 
@@ -108,11 +109,16 @@ Release assets must end with a `-<OS>-<ARCH>` suffix. Windows assets also need `
 
 | Rust target | OS | Arch | Asset name |
 | --- | --- | --- | --- |
-| `x86_64-apple-darwin` | `darwin` | `amd64` | `gh-qwt-darwin-amd64` |
 | `aarch64-apple-darwin` | `darwin` | `arm64` | `gh-qwt-darwin-arm64` |
 | `x86_64-unknown-linux-musl` | `linux` | `amd64` | `gh-qwt-linux-amd64` |
 | `aarch64-unknown-linux-musl` | `linux` | `arm64` | `gh-qwt-linux-arm64` |
 | `x86_64-pc-windows-msvc` | `windows` | `amd64` | `gh-qwt-windows-amd64.exe` |
+
+> [!NOTE]
+> **Intel macOS (`darwin-amd64`) is not supported.** GitHub Actions is
+> [retiring the `macos-13` (Intel) runner image](https://github.blog/changelog/2025-09-19-github-actions-macos-13-runner-image-is-closing-down/),
+> so there is no hosted runner to build or smoke-test `x86_64-apple-darwin`. macOS releases target
+> Apple Silicon (`aarch64-apple-darwin`) only.
 
 Architecture mapping:
 
@@ -134,14 +140,13 @@ OS mapping:
 ## Cross-compilation notes
 
 - Prefer `x86_64-unknown-linux-musl` and `aarch64-unknown-linux-musl` for Linux release binaries. `musl` produces static binaries and avoids glibc version compatibility issues.
-- Build both `x86_64-apple-darwin` and `aarch64-apple-darwin` for macOS users on Intel and Apple Silicon.
+- Build `aarch64-apple-darwin` for macOS users on Apple Silicon. Intel macOS (`x86_64-apple-darwin`) is not supported (see the note above).
 - Build `x86_64-pc-windows-msvc` for Windows users and keep the `.exe` extension in the release asset name.
 - Linux ARM64 can be built with a suitable linker/toolchain or with [`cross`](https://github.com/cross-rs/cross).
 
 Example target installation:
 
 ```bash
-rustup target add x86_64-apple-darwin
 rustup target add aarch64-apple-darwin
 rustup target add x86_64-unknown-linux-musl
 rustup target add aarch64-unknown-linux-musl
@@ -175,10 +180,6 @@ jobs:
       matrix:
         include:
           - os: macos-latest
-            target: x86_64-apple-darwin
-            asset_name: gh-qwt-darwin-amd64
-            binary_name: gh-qwt
-          - os: macos-latest
             target: aarch64-apple-darwin
             asset_name: gh-qwt-darwin-arm64
             binary_name: gh-qwt
@@ -197,10 +198,10 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@4be7066ada62dd38de10e7b70166bc74ed198c30 # stable
         with:
           targets: ${{ matrix.target }}
 
@@ -218,7 +219,7 @@ jobs:
           cp 'target/${{ matrix.target }}/release/${{ matrix.binary_name }}' 'dist/${{ matrix.asset_name }}'
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.asset_name }}
           path: dist/${{ matrix.asset_name }}
@@ -230,7 +231,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download assets
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: dist
           merge-multiple: true
@@ -243,6 +244,28 @@ jobs:
 
 > [!NOTE]
 > The [`cli/gh-extension-precompile`](https://github.com/cli/gh-extension-precompile) action is another option for packaging precompiled GitHub CLI extension assets.
+
+## GitHub Actions version pinning policy
+
+Both `.github/workflows/ci.yml` and `.github/workflows/release.yml` pin third-party actions by
+their full-length commit SHA, following GitHub's [secure use guidance for third-party
+actions](https://docs.github.com/en/actions/reference/security/secure-use#using-third-party-actions):
+
+- **GitHub official or Marketplace-Verified actions** (owner shows a "Verified creator" badge,
+  such as everything under the [`actions`](https://github.com/actions) organization) are pinned by
+  their **major version tag**, for example `actions/checkout@v7`. GitHub controls these tags
+  directly, so they are trusted to move within a major version.
+- **All other actions** are pinned to a **full-length commit SHA**, with the human-readable version
+  as a trailing comment, for example `Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1`.
+  A SHA cannot be silently repointed to different code the way a tag or branch can.
+- `dtolnay/rust-toolchain` has no `vX.Y.Z` release tags; the ref itself selects the Rust toolchain
+  (`@stable`, `@nightly`, `@1.89.0`, ...). It is pinned to the commit SHA at the tip of the
+  `stable` branch, commented as `# stable`, which keeps installing the latest stable Rust while
+  fixing the action code that runs.
+
+When updating a pinned action, resolve the new tag to its commit SHA (for example with
+`gh api repos/<owner>/<repo>/commits/<tag> --jq .sha`) and update both the workflow YAML and this
+document together.
 
 ## Release notes
 

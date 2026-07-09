@@ -99,12 +99,18 @@ Keep changes focused and prefer clear, explicit error messages. `gh-qwt` shells 
 
 ## Testing
 
-See the [testing documentation](../testing/) for the planned unit and offline integration test strategy.
+See the [testing documentation](../testing/) for the unit and offline integration test strategy.
 
 At minimum, run:
 
 ```bash
 cargo test
+```
+
+For a quick end-to-end sanity check, run the offline smoke test:
+
+```bash
+script/smoke-test.sh
 ```
 
 For style and lint checks, also run:

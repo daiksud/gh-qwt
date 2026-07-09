@@ -70,6 +70,7 @@ A repo spec identifies a GitHub repository. Commands that accept a repo spec acc
 | `owner/repo` | `cli/cli` | Host defaults to `github.com`. |
 | HTTPS URL | `https://github.com/cli/cli.git` | `.git` suffix is optional. |
 | SSH URL | `git@github.com:cli/cli.git` | Uses the SSH remote form. |
+| Local URL | `file:///path/to/repo` | Clones a local repository. `owner` is taken from the parent directory and `repo` from the final path component. Primarily for local repositories and offline testing. |
 
 The `--host <host>` flag on [`get`](#get) changes the host used with the `owner/repo` form. The path layout still omits the host.
 
