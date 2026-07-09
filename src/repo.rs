@@ -398,7 +398,13 @@ mod tests {
 
         let nested = repo.join("feature").join("login");
         fs::create_dir_all(&nested)?;
-        assert_eq!(discover_repo_root(&nested)?, repo.canonicalize()?);
+        // Compare canonical forms: `discover_repo_root` strips the Windows
+        // `\\?\` verbatim prefix for git-friendliness, while `Path::canonicalize`
+        // keeps it, so normalize both sides to assert they name the same dir.
+        assert_eq!(
+            discover_repo_root(&nested)?.canonicalize()?,
+            repo.canonicalize()?
+        );
 
         Ok(())
     }
