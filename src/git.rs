@@ -144,6 +144,36 @@ pub fn worktree_add_new(repo_dir: &Path, branch: &str, dest: &Path, base: &str) 
     )
 }
 
+/// Attach an existing local branch to a new worktree:
+/// `git -C <repo_dir> worktree add <dest> <branch>`.
+///
+/// A `git clone --bare` copies the remote's branches into local heads, so the
+/// default branch (and any branch present at clone time) already exists locally
+/// and must be *attached* rather than re-created. Best-effort sets the branch's
+/// upstream to `origin/<branch>` so it tracks the remote when that ref exists.
+pub fn worktree_add_existing(repo_dir: &Path, branch: &str, dest: &Path) -> Result<()> {
+    let dest = dest.to_string_lossy();
+    run(Some(repo_dir), &["worktree", "add", dest.as_ref(), branch])?;
+    let _ = run(
+        Some(repo_dir),
+        &[
+            "branch",
+            &format!("--set-upstream-to=origin/{branch}"),
+            branch,
+        ],
+    );
+    Ok(())
+}
+
+/// Whether a local branch `refs/heads/<branch>` exists in the repo at `repo_dir`.
+pub fn local_branch_exists(repo_dir: &Path, branch: &str) -> Result<bool> {
+    let local_ref = format!("refs/heads/{branch}");
+    success(
+        Some(repo_dir),
+        &["show-ref", "--verify", "--quiet", &local_ref],
+    )
+}
+
 /// List the worktrees of the repository at `repo_dir`
 /// (parse `git -C <repo_dir> worktree list --porcelain`).
 pub fn worktree_list(repo_dir: &Path) -> Result<Vec<Worktree>> {

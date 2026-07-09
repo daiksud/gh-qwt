@@ -96,6 +96,7 @@ Accepted forms:
 | `owner/repo` | `cli/cli` | Host defaults to `github.com` unless a command flag supplies another host. Clone URL uses that host. |
 | HTTPS URL | `https://github.com/cli/cli.git` | Host, owner, and repo are parsed from the URL path. A trailing `.git` suffix is ignored for the repo name. |
 | SSH URL | `git@github.com:cli/cli.git` | Host is parsed before `:`, owner/repo after `:`. A trailing `.git` suffix is ignored for the repo name. |
+| Local URL | `file:///path/to/repo` | Clones a local repository. `owner` is derived from the parent directory and `repo` from the final path component (trailing `.git` ignored); host is recorded as `local`. Primarily for local repositories and offline testing. |
 
 Examples:
 

@@ -57,6 +57,31 @@ impl RepoSpec {
             });
         }
 
+        if let Some(rest) = input.strip_prefix("file://") {
+            // Local repository. There is no host or owner in a filesystem path,
+            // so derive `owner` from the parent directory and `repo` from the
+            // final path component. Primarily used for local clones and offline
+            // integration tests.
+            let segments: Vec<&str> = rest.split('/').filter(|s| !s.is_empty()).collect();
+            let repo = segments
+                .last()
+                .map(|s| strip_git_suffix(s))
+                .filter(|repo| !repo.is_empty())
+                .ok_or_else(|| anyhow::anyhow!("file:// repository spec is missing a repo name"))?;
+            let owner = if segments.len() >= 2 {
+                segments[segments.len() - 2]
+            } else {
+                "local"
+            };
+
+            return Ok(RepoSpec {
+                host: "local".to_string(),
+                owner: owner.to_string(),
+                repo: repo.to_string(),
+                clone_url: input.to_string(),
+            });
+        }
+
         if input.contains("://") {
             bail!("unsupported repository URL scheme");
         }
@@ -303,6 +328,23 @@ mod tests {
             "cli",
             "cli",
             "git@github.com:cli/cli.git",
+        );
+        // Local file URLs: owner from parent dir, repo from final component.
+        assert_spec(
+            "file:///tmp/acme/src",
+            "github.com",
+            "local",
+            "acme",
+            "src",
+            "file:///tmp/acme/src",
+        );
+        assert_spec(
+            "file:///tmp/acme/src.git",
+            "github.com",
+            "local",
+            "acme",
+            "src",
+            "file:///tmp/acme/src.git",
         );
     }
 
