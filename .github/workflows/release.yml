@@ -54,7 +54,17 @@ jobs:
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y musl-tools
 
+      - name: Install aarch64 cross linker
+        # ubuntu-latest runners are x86_64, so cross-compiling to
+        # aarch64-unknown-linux-musl needs an aarch64-capable linker; the
+        # host's default `cc` cannot link aarch64 objects (it fails with
+        # "Relocations in generic ELF (EM: 183)").
+        if: matrix.target == 'aarch64-unknown-linux-musl'
+        run: sudo apt-get update && sudo apt-get install -y gcc-aarch64-linux-gnu
+
       - name: Build
+        env:
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER: aarch64-linux-gnu-gcc
         run: cargo build --release --target '${{ matrix.target }}'
 
       - name: Package asset
