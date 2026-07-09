@@ -1,0 +1,21 @@
+[package]
+name = "gh-qwt"
+version = "0.1.0"
+edition = "2021"
+description = "ghq reimagined around git worktrees, as a GitHub CLI extension"
+repository = "https://github.com/daiksud/gh-qwt"
+license = "MIT"
+publish = false
+
+[[bin]]
+name = "gh-qwt"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1"
+clap = { version = "4", features = ["derive"] }
+dirs = "5"
+
+[dev-dependencies]
+assert_cmd = "2"
+tempfile = "3"
