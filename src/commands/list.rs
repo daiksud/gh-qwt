@@ -1,5 +1,10 @@
 //! `gh qwt list` — list repositories and their worktrees.
 //!
+//! Output is modeled on `ghq list`: a flat, sorted list of `owner/repo/branch`
+//! (or absolute paths with `--full-path`), one entry per line, with no
+//! repository headers or indentation. This makes it safe to pipe directly
+//! into tools like `fzf`, `grep`, or `xargs`.
+//!
 //! See `docs/development/specification/README.md` (`list`).
 
 use anyhow::Result;
@@ -11,7 +16,19 @@ use crate::{config, git, repo};
 /// Arguments for `gh qwt list`.
 #[derive(Debug, clap::Args)]
 pub struct Args {
-    /// Print absolute paths for worktrees.
+    /// Only list entries whose `owner/repo/branch` contains this text.
+    ///
+    /// Matching is case-insensitive unless QUERY contains an uppercase
+    /// letter (smartcase). See `--exact` for exact matching.
+    #[arg(value_name = "QUERY")]
+    pub query: Option<String>,
+
+    /// Require QUERY to exactly match `branch`, `repo/branch`, or
+    /// `owner/repo/branch`, instead of a substring match.
+    #[arg(short = 'e', long = "exact")]
+    pub exact: bool,
+
+    /// Print absolute paths instead of `owner/repo/branch`.
     #[arg(short = 'p', long = "full-path")]
     pub full_path: bool,
 }
@@ -23,10 +40,10 @@ pub fn run(args: Args) -> Result<()> {
         return Ok(());
     }
 
-    for (repo_name, repo_dir) in qwt_repositories(&root) {
-        println!("{repo_name}");
+    let mut lines = Vec::new();
 
-        let mut worktrees = match git::worktree_list(&repo_dir) {
+    for (repo_name, repo_dir) in qwt_repositories(&root) {
+        let worktrees = match git::worktree_list(&repo_dir) {
             Ok(worktrees) => worktrees,
             Err(err) => {
                 eprintln!("warning: failed to inspect {}: {err:#}", repo_dir.display());
@@ -34,17 +51,90 @@ pub fn run(args: Args) -> Result<()> {
             }
         };
 
-        worktrees.sort_by_key(worktree_sort_key);
         for worktree in worktrees {
+            let branch = relative_branch(&repo_dir, &worktree);
+            let spec = format!("{repo_name}/{branch}");
+
+            if !matches_query(
+                &spec,
+                &repo_name,
+                &branch,
+                args.query.as_deref(),
+                args.exact,
+            ) {
+                continue;
+            }
+
             if args.full_path {
-                println!("  {}", worktree.path.display());
+                lines.push(worktree.path.display().to_string());
             } else {
-                println!("  {}", compact_worktree_name(&worktree));
+                lines.push(spec);
             }
         }
     }
 
+    lines.sort();
+    for line in lines {
+        println!("{line}");
+    }
+
     Ok(())
+}
+
+/// The worktree's path relative to its repository directory, joined with `/`
+/// regardless of platform — this is the `branch` segment of an
+/// `owner/repo/branch` spec.
+///
+/// Uses the on-disk path rather than the branch `git worktree list` reports,
+/// so detached-HEAD worktrees still produce a clean, reusable spec instead of
+/// no branch at all.
+fn relative_branch(repo_dir: &Path, worktree: &git::Worktree) -> String {
+    let joined = worktree.path.strip_prefix(repo_dir).ok().map(|rel| {
+        rel.components()
+            .map(|component| component.as_os_str().to_string_lossy().into_owned())
+            .collect::<Vec<_>>()
+            .join("/")
+    });
+
+    match joined {
+        Some(joined) if !joined.is_empty() => joined,
+        _ => worktree
+            .branch
+            .clone()
+            .unwrap_or_else(|| file_name_string(&worktree.path)),
+    }
+}
+
+/// Whether an entry should be included given an optional QUERY and
+/// `--exact`.
+///
+/// With no QUERY, everything matches (an `--exact` with no QUERY is a no-op,
+/// matching `ghq list`). With `--exact`, QUERY must equal `branch`,
+/// `repo/branch`, or `owner/repo/branch` exactly (case-sensitive). Otherwise,
+/// QUERY must be a smartcase substring of the full `owner/repo/branch` spec:
+/// case-insensitive unless QUERY contains an uppercase letter.
+fn matches_query(
+    full_spec: &str,
+    repo_name: &str,
+    branch: &str,
+    query: Option<&str>,
+    exact: bool,
+) -> bool {
+    let Some(query) = query else {
+        return true;
+    };
+
+    if exact {
+        let repo_only = repo_name.rsplit('/').next().unwrap_or(repo_name);
+        let repo_branch = format!("{repo_only}/{branch}");
+        return query == branch || query == repo_branch || query == full_spec;
+    }
+
+    if query.chars().any(char::is_uppercase) {
+        full_spec.contains(query)
+    } else {
+        full_spec.to_lowercase().contains(&query.to_lowercase())
+    }
 }
 
 fn qwt_repositories(root: &Path) -> Vec<(String, PathBuf)> {
@@ -95,26 +185,6 @@ fn sorted_child_dirs(dir: &Path) -> Vec<PathBuf> {
 
     dirs.sort_by_key(|path| file_name_string(path));
     dirs
-}
-
-fn compact_worktree_name(worktree: &git::Worktree) -> String {
-    if let Some(branch) = &worktree.branch {
-        return branch.clone();
-    }
-
-    let name = file_name_string(&worktree.path);
-    if worktree.detached {
-        format!("{name} (detached)")
-    } else {
-        name
-    }
-}
-
-fn worktree_sort_key(worktree: &git::Worktree) -> String {
-    worktree
-        .branch
-        .clone()
-        .unwrap_or_else(|| worktree.path.display().to_string())
 }
 
 fn file_name_string(path: &Path) -> String {

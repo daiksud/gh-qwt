@@ -18,7 +18,10 @@ pub struct Worktree {
     /// porcelain model; not currently surfaced by any command.
     #[allow(dead_code)]
     pub head: Option<String>,
-    /// Whether the worktree is in detached-HEAD state.
+    /// Whether the worktree is in detached-HEAD state. Part of the parsed
+    /// porcelain model; not currently surfaced by any command (`list` uses
+    /// the on-disk relative path for detached worktrees instead).
+    #[allow(dead_code)]
     pub detached: bool,
 }
 

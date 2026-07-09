@@ -273,7 +273,7 @@ $ gh qwt add fix/parser
 
 #### Preconditions
 
-- No positional arguments MUST be required.
+- No positional arguments are required; an optional `<query>` argument MAY be given.
 - The qwt root MAY be empty or missing.
 
 #### Steps and effects
@@ -281,27 +281,41 @@ $ gh qwt add fix/parser
 1. Resolve the qwt root.
 2. Iterate candidate repository directories under `<qwt_root>/<owner>/<repo>`.
 3. For each qwt-managed repository, run `git worktree list` or equivalent.
-4. Do not modify the filesystem.
+4. For each worktree, build the `owner/repo/branch` spec, using the worktree's path relative to
+   its repository directory as `branch` (so a detached-HEAD worktree still produces a usable
+   spec instead of no branch at all).
+5. If `<query>` is given without `--exact`, keep only entries whose `owner/repo/branch` contains
+   `<query>` as a substring; the match MUST be case-insensitive unless `<query>` contains an
+   uppercase letter (smartcase).
+6. If `<query>` is given with `-e`/`--exact`, keep only entries where `<query>` exactly equals
+   `branch`, `repo/branch`, or `owner/repo/branch` (case-sensitive). A branch name containing `/`
+   MUST be treated as a single segment for this comparison, not split further. `--exact` without
+   `<query>` MUST have no filtering effect.
+7. Sort the remaining entries lexicographically by their printed form (see Output).
+8. Do not modify the filesystem.
 
 #### Output
 
-Default output SHOULD list repo names and branch-relative worktrees:
+Default output MUST be a flat list of `owner/repo/branch`, one entry per line, with no repository
+header lines and no indentation:
 
 ```console
 $ gh qwt list
-cli/cli
-  trunk
-  fix/parser
+cli/cli/fix/parser
+cli/cli/trunk
 ```
 
-With `--full-path`, output SHOULD include full worktree paths:
+With `--full-path`, output MUST use the same flat, one-entry-per-line shape, printing absolute
+worktree paths instead:
 
 ```console
 $ gh qwt list --full-path
-cli/cli
-  ~/qwt/cli/cli/trunk
-  ~/qwt/cli/cli/fix/parser
+~/qwt/cli/cli/fix/parser
+~/qwt/cli/cli/trunk
 ```
+
+Filtering (`<query>`, `--exact`) MUST apply before printing, and MUST be evaluated against the
+`owner/repo/branch` spec regardless of whether `--full-path` changes what gets printed.
 
 #### Errors and exit codes
 
@@ -451,3 +465,4 @@ With force, output MAY be a concise confirmation.
 - [ADR 0003: Language: Rust precompiled binary](../adr/0003-language-rust-precompiled-binary/)
 - [ADR 0004: Bare repo plus per-branch worktree layout](../adr/0004-bare-repo-plus-per-branch-worktree-layout/)
 - [ADR 0009: Default branch detection strategy](../adr/0009-default-branch-detection-strategy/)
+- [ADR 0012: Flat, query-filterable `list` output modeled on `ghq list`](../adr/0012-flat-queryable-list-output/)

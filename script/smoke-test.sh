@@ -123,6 +123,12 @@ assert_exit 1 "prefix collision (topic vs topic/demo) is rejected" qwt add --rep
 step "list / path"
 echo "${DIM}-- gh qwt list --${RESET}"
 qwt list
+list_out="$(qwt list)"
+assert_eq "$list_out" "$(printf 'acme/widget/feature/login\nacme/widget/main\nacme/widget/topic/demo')" "list prints a flat, sorted owner/repo/branch line per worktree"
+# The core fzf -> cd workflow: a line from `list` resolves via `path` (no
+# repository header or indentation to strip first).
+picked="$(qwt list | head -n1)"
+assert_path_eq "$(qwt path "$picked")" "$REPO/feature/login" "a list line resolves via path (fzf -> cd workflow)"
 assert_path_eq "$(qwt path acme/widget/feature/login)" "$REPO/feature/login" "path owner/repo/branch"
 assert_path_eq "$(qwt path acme/widget)" "$REPO" "path owner/repo"
 assert_exit 2 "malformed path argument exits 2" qwt path solo

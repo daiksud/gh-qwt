@@ -5,6 +5,7 @@
 //! `docs/development/testing/README.md`.
 
 use assert_cmd::Command;
+use predicates::prelude::PredicateStrExt;
 use std::path::{Path, PathBuf};
 use std::process::Command as StdCommand;
 use tempfile::TempDir;
@@ -196,7 +197,7 @@ fn add_rejects_prefix_collision() {
 }
 
 #[test]
-fn list_shows_repositories_and_worktrees() {
+fn list_prints_flat_sorted_spec_and_full_path() {
     let env = Env::new();
     env.cmd()
         .args(["get", &env.src_url, "-b", "main"])
@@ -207,21 +208,146 @@ fn list_shows_repositories_and_worktrees() {
         .assert()
         .success();
 
+    // Flat, sorted `owner/repo/branch` per line: no repository header and no
+    // indentation, so the output is safe to pipe straight into a fuzzy
+    // finder like fzf and use the selected line for `cd`.
     env.cmd()
         .arg("list")
         .assert()
         .success()
-        .stdout(predicates::str::contains("acme/widget"))
-        .stdout(predicates::str::contains("main"))
-        .stdout(predicates::str::contains("feature/x"));
+        .stdout(predicates::str::diff("acme/widget/feature/x\nacme/widget/main\n").from_utf8());
 
-    // --full-path prints absolute worktree paths.
-    let wt = env.worktree("main");
+    // --full-path prints the same flat shape with absolute paths instead.
+    // `git worktree list` reports canonicalized paths (e.g. resolving
+    // macOS's `/var` -> `/private/var` symlink), so canonicalize the
+    // expected side too.
+    let expected_full_path = format!(
+        "{}\n{}\n",
+        env.worktree("feature/x").canonicalize().unwrap().display(),
+        env.worktree("main").canonicalize().unwrap().display(),
+    );
     env.cmd()
         .args(["list", "--full-path"])
         .assert()
         .success()
-        .stdout(predicates::str::contains(wt.to_string_lossy().as_ref()));
+        .stdout(predicates::str::diff(expected_full_path).from_utf8());
+}
+
+#[test]
+fn list_query_filters_by_substring_with_smartcase() {
+    let env = Env::new();
+    env.cmd()
+        .args(["get", &env.src_url, "-b", "main"])
+        .assert()
+        .success();
+    env.cmd()
+        .args(["add", "--repo", "acme/widget", "feature/x"])
+        .assert()
+        .success();
+
+    // A lowercase query is a case-insensitive substring match.
+    env.cmd()
+        .args(["list", "feature"])
+        .assert()
+        .success()
+        .stdout(predicates::str::diff("acme/widget/feature/x\n").from_utf8());
+
+    // A query containing an uppercase letter is case-sensitive (smartcase),
+    // so it no longer matches the (lowercase) "feature/x" branch.
+    env.cmd()
+        .args(["list", "Feature"])
+        .assert()
+        .success()
+        .stdout(predicates::str::diff("").from_utf8());
+
+    // A query that matches nothing prints nothing.
+    env.cmd()
+        .args(["list", "nope"])
+        .assert()
+        .success()
+        .stdout(predicates::str::diff("").from_utf8());
+}
+
+#[test]
+fn list_exact_matches_branch_repo_branch_or_full_spec() {
+    let env = Env::new();
+    env.cmd()
+        .args(["get", &env.src_url, "-b", "main"])
+        .assert()
+        .success();
+    env.cmd()
+        .args(["add", "--repo", "acme/widget", "feature/x"])
+        .assert()
+        .success();
+
+    // Matches at the `branch` level.
+    env.cmd()
+        .args(["list", "--exact", "main"])
+        .assert()
+        .success()
+        .stdout(predicates::str::diff("acme/widget/main\n").from_utf8());
+
+    // Matches at the `repo/branch` level.
+    env.cmd()
+        .args(["list", "-e", "widget/main"])
+        .assert()
+        .success()
+        .stdout(predicates::str::diff("acme/widget/main\n").from_utf8());
+
+    // Matches at the full `owner/repo/branch` level.
+    env.cmd()
+        .args(["list", "-e", "acme/widget/main"])
+        .assert()
+        .success()
+        .stdout(predicates::str::diff("acme/widget/main\n").from_utf8());
+
+    // A plain substring is no longer sufficient under --exact.
+    env.cmd()
+        .args(["list", "-e", "mai"])
+        .assert()
+        .success()
+        .stdout(predicates::str::diff("").from_utf8());
+
+    // `--exact` with no query is a no-op: everything is listed (matches
+    // `ghq list`'s behavior).
+    env.cmd()
+        .args(["list", "--exact"])
+        .assert()
+        .success()
+        .stdout(predicates::str::diff("acme/widget/feature/x\nacme/widget/main\n").from_utf8());
+}
+
+#[test]
+fn list_output_round_trips_through_path() {
+    let env = Env::new();
+    env.cmd()
+        .args(["get", &env.src_url, "-b", "main"])
+        .assert()
+        .success();
+    env.cmd()
+        .args(["add", "--repo", "acme/widget", "feature/x"])
+        .assert()
+        .success();
+
+    // Each line printed by `list` is a valid `path` spec that resolves back
+    // to the worktree it came from -- the core "select in fzf, then cd" use
+    // case this feature exists for.
+    let assert = env.cmd().arg("list").assert().success();
+    let stdout = String::from_utf8(assert.get_output().stdout.clone()).unwrap();
+    let lines: Vec<&str> = stdout.lines().collect();
+    assert_eq!(lines, vec!["acme/widget/feature/x", "acme/widget/main"]);
+
+    for line in lines {
+        let branch = line.strip_prefix("acme/widget/").expect("spec prefix");
+        env.cmd()
+            .args(["path", line])
+            .assert()
+            .success()
+            .stdout(predicates::str::diff(format!(
+                "{}\n",
+                env.worktree(branch).display()
+            )));
+    }
 }
 
 #[test]
