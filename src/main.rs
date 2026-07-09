@@ -5,6 +5,7 @@
 
 mod commands;
 mod config;
+mod error;
 mod gh;
 mod git;
 mod repo;
@@ -55,7 +56,13 @@ fn main() {
     };
 
     if let Err(err) = result {
+        // Invalid usage maps to exit code 2; all other runtime errors to 1.
+        let code = if err.downcast_ref::<error::UsageError>().is_some() {
+            2
+        } else {
+            1
+        };
         eprintln!("gh-qwt: {err:#}");
-        std::process::exit(1);
+        std::process::exit(code);
     }
 }

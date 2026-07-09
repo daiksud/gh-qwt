@@ -23,7 +23,7 @@ pub struct Args {
 
 /// Run the `get` command.
 pub fn run(args: Args) -> Result<()> {
-    let spec = repo::RepoSpec::parse(&args.spec, &args.host)?;
+    let spec = repo::RepoSpec::parse(&args.spec, &args.host).map_err(crate::error::usage_from)?;
     let root = config::resolve_root()?;
     let repo_dir = repo::repo_dir(&root, &spec.owner, &spec.repo);
 
