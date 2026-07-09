@@ -10,6 +10,8 @@ notes on [GitHub Releases](https://github.com/daiksud/gh-qwt/releases) (see
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-07-10
+
 ### Changed
 
 - **Breaking:** `gh qwt prune` no longer takes an `owner/repo` argument and no longer deletes an
@@ -67,6 +69,7 @@ Initial release.
 - Precompiled release binaries for `darwin-arm64`, `linux-amd64`, `linux-arm64`, and
   `windows-amd64`, distributed via GitHub Releases for `gh extension install`.
 
-[Unreleased]: https://github.com/daiksud/gh-qwt/compare/v0.10.0...HEAD
+[Unreleased]: https://github.com/daiksud/gh-qwt/compare/v0.11.0...HEAD
+[0.11.0]: https://github.com/daiksud/gh-qwt/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/daiksud/gh-qwt/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/daiksud/gh-qwt/releases/tag/v0.9.0
