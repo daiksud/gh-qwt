@@ -75,6 +75,8 @@ The generated local executable and Rust build output must not be committed:
 
 ## Precompiled release model
 
+`gh-qwt` is distributed exclusively through [**GitHub Releases**](https://docs.github.com/en/repositories/releasing-projects-on-github/about-releases): each pushed `v*` tag produces a GitHub Release with the precompiled per-platform binaries attached as assets, which GitHub CLI downloads at install time.
+
 A GitHub CLI extension repository must be named `gh-<name>` and provide either:
 
 1. an executable named the same as the repository at the repository root, or
