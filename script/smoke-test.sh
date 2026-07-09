@@ -38,6 +38,11 @@ assert_eq() {
 # assert_dir <path> ; assert_gone <path>
 assert_dir()  { if [ -d "$1" ]; then ok "exists: ${1#"$WORK"/}"; else bad "missing: ${1#"$WORK"/}"; fi; }
 assert_gone() { if [ ! -e "$1" ]; then ok "removed: ${1#"$WORK"/}"; else bad "still present: ${1#"$WORK"/}"; fi; }
+# assert_path_eq <actual> <expected> <description>
+# Compare paths ignoring separator style (Windows may emit a mix of \ and /).
+assert_path_eq() {
+  assert_eq "$(printf '%s' "$1" | tr '\\' '/')" "$(printf '%s' "$2" | tr '\\' '/')" "$3"
+}
 # assert_exit <expected-code> <description> <command...>
 assert_exit() {
   local want=$1 desc=$2; shift 2
@@ -118,8 +123,8 @@ assert_exit 1 "prefix collision (topic vs topic/demo) is rejected" qwt add --rep
 step "list / path"
 echo "${DIM}-- gh qwt list --${RESET}"
 qwt list
-assert_eq "$(qwt path acme/widget/feature/login)" "$REPO/feature/login" "path owner/repo/branch"
-assert_eq "$(qwt path acme/widget)" "$REPO" "path owner/repo"
+assert_path_eq "$(qwt path acme/widget/feature/login)" "$REPO/feature/login" "path owner/repo/branch"
+assert_path_eq "$(qwt path acme/widget)" "$REPO" "path owner/repo"
 assert_exit 2 "malformed path argument exits 2" qwt path solo
 
 step "rm (with --delete-branch)"
