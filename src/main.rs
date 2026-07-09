@@ -1,8 +1,3 @@
-// TODO(integration): remove this crate-wide allow once every command wires the
-// config/repo/git/gh modules together — it silences dead-code warnings that only
-// exist while the modules are implemented incrementally in parallel.
-#![allow(dead_code)]
-
 mod commands;
 mod config;
 mod error;

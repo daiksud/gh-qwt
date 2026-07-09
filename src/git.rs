@@ -14,7 +14,9 @@ pub struct Worktree {
     pub path: PathBuf,
     /// Branch name (without `refs/heads/`), if the worktree is on a branch.
     pub branch: Option<String>,
-    /// Commit the worktree HEAD points at, if reported.
+    /// Commit the worktree HEAD points at, if reported. Part of the parsed
+    /// porcelain model; not currently surfaced by any command.
+    #[allow(dead_code)]
     pub head: Option<String>,
     /// Whether the worktree is in detached-HEAD state.
     pub detached: bool,
