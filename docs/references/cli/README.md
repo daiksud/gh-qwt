@@ -20,7 +20,7 @@ Exhaustive command reference for `gh qwt`, the `gh-qwt` GitHub CLI extension.
 - [get](#get)
 - [add](#add)
 - [list](#list)
-- [rm](#rm)
+- [remove](#remove)
 - [root](#root)
 - [path](#path)
 - [prune](#prune)
@@ -282,61 +282,92 @@ d=$(gh qwt list --full-path | fzf) && cd "$d"
 - Output is always sorted lexicographically, whether printing specs or full paths.
 - See the [shell integration guide](../../guides/shell-integration/) for more on piping `list` into a fuzzy picker.
 
-## rm
+## remove
 
 ### Synopsis
 
 ```console
-$ gh qwt rm [flags] <branch>
+$ gh qwt remove [flags] <branch>
+$ gh qwt remove [flags] <owner>/<repo>
+$ gh qwt remove [flags] <owner>/<repo>/<branch>
+$ gh qwt rm ...   # alias, identical behavior
 ```
 
 ### Description
 
-Remove a worktree for a branch in the current qwt-managed repository.
+Remove a worktree, or an entire repository. `rm` is an alias for `remove` — both names behave
+identically.
 
-`rm` locates the repository root by walking up from the current working directory, then runs `git worktree remove <dir>` for the branch worktree directory. With `--delete-branch`, it also deletes the local branch using `git branch -D`.
+The form depends on where you run it and what you pass:
+
+- Inside a qwt-managed repository, the argument is always treated as a **branch name** for that
+  repository (discovered by walking up from the current directory), and only that worktree is
+  removed — the entire argument, including any `/` it contains, is the branch name.
+- Outside any qwt-managed repository, the argument must be an explicit spec: `owner/repo` removes
+  the **entire repository** (`.bare` plus every worktree); `owner/repo/branch` removes **only**
+  that worktree.
+
+`remove` cannot target a different repository's worktree while you're standing inside another
+repository — `cd` out first (for example, to the qwt root) to use the explicit `owner/repo[/branch]`
+form for a different repository.
 
 ### Arguments
 
 | Argument | Description |
 | --- | --- |
-| `<branch>` | Branch name of the worktree to remove. Slash-separated names map to nested directories. |
+| `<branch>` | Inside a qwt repository: the worktree to remove. Slash-separated names map to nested directories. |
+| `<owner>/<repo>` | Outside any qwt repository: the entire repository to remove. |
+| `<owner>/<repo>/<branch>` | Outside any qwt repository: only that worktree to remove. |
 
 ### Flags
 
 | Flag | Description | Default |
 | --- | --- | --- |
-| `--force` | Remove the worktree even when it has local changes. | Off |
-| `--delete-branch` | Also delete the local branch with `git branch -D`. | Off |
-| `-h, --help` | Print help for `rm`. | Off |
+| `--force` | Remove a worktree even when it has local changes, or skip the confirmation prompt when removing an entire repository. | Off |
+| `--delete-branch` | Also delete the local branch with `git branch -D`. Only applies when removing a single worktree. | Off |
+| `-h, --help` | Print help for `remove`. | Off |
 
 ### Examples
 
 From inside a worktree for `cli/cli`:
 
 ```console
+$ gh qwt remove fix/parser
 $ gh qwt rm fix/parser
 ```
 
-Force removal when local changes exist:
+Force removal when local changes exist, and also delete the local branch:
 
 ```console
-$ gh qwt rm --force fix/parser
+$ gh qwt remove --force --delete-branch fix/parser
 ```
 
-Remove the worktree and delete the local branch:
+From anywhere, removing a single worktree in a specific repository:
 
 ```console
-$ gh qwt rm --delete-branch fix/parser
+$ gh qwt remove cli/cli/fix/parser
+```
+
+From anywhere, removing an entire repository:
+
+```console
+$ gh qwt remove cli/cli
+Remove ~/qwt/cli/cli and all worktrees? [y/N]
+```
+
+```console
+$ gh qwt remove --force cli/cli
 ```
 
 ### Notes
 
 > [!WARNING]
-> `--force` can discard uncommitted worktree changes.
+> `--force` can discard uncommitted worktree changes. Removing an entire repository discards its
+> `.bare` database and every worktree; there is no undo.
 
-- `rm` removes one worktree, not the entire repository directory.
-- To remove the full qwt-managed repository including `.bare`, use [`prune`](#prune).
+- Removing a single worktree does not touch the rest of the repository.
+- To clean up worktrees whose branch is gone from the remote instead of removing them by name, see
+  [`prune`](#prune).
 
 ## root
 
@@ -447,47 +478,72 @@ cd "$(gh qwt path cli/cli/fix/parser)"
 ### Synopsis
 
 ```console
-$ gh qwt prune [flags] <owner>/<repo>
+$ gh qwt prune [flags]
 ```
 
 ### Description
 
-Remove an entire qwt-managed repository tree.
+Remove worktrees whose branch is gone from the remote, and clean up stale worktree metadata.
+Modeled on real git's own "prune" vocabulary (`git worktree prune`, `git fetch --prune`): a safe,
+automatic cleanup, not a way to delete an entire repository. For that, see
+[`remove`](#remove)/`rm`.
 
-`prune` deletes `<root>/<owner>/<repo>`, including all worktrees and the `.bare` bare repository. It asks for confirmation unless forced with `-y` or `--force`.
+`prune` takes no argument — like `git worktree prune`, it always operates on the repository
+discovered from the current directory. It:
+
+1. Runs `git fetch origin --prune` to refresh remote-tracking refs.
+2. Runs `git worktree prune` to remove administrative metadata for worktree directories that were
+   deleted outside of `gh qwt` (for example, by hand with `rm -rf`).
+3. Removes each remaining worktree (and its local branch) whose branch has an upstream configured
+   **and** whose upstream is no longer on `origin` — the common signal that a pull request was
+   merged and the remote deleted the source branch.
+
+A branch that was never pushed (no upstream configured) is never touched, even though it will also
+look "absent from origin." A worktree with uncommitted or untracked changes is skipped and
+reported, never force-removed. The repository's default branch is never a candidate. `prune` lists
+the candidates and asks for confirmation once, unless `-y`/`--force`.
 
 ### Arguments
 
 | Argument | Description |
 | --- | --- |
-| `<owner>/<repo>` | Repository directory to remove under the qwt root. |
+| None | `prune` operates on the repository discovered from the current directory. |
 
 ### Flags
 
 | Flag | Description | Default |
 | --- | --- | --- |
-| `-y, --force` | Skip confirmation and remove the repository tree. | Off |
+| `-y, --force` | Skip confirmation and remove the pruned worktrees and branches. | Off |
 | `-h, --help` | Print help for `prune`. | Off |
 
 ### Examples
 
+From inside any worktree of `cli/cli`:
+
 ```console
-$ gh qwt prune cli/cli
-Remove ~/qwt/cli/cli and all worktrees? [y/N]
+$ gh qwt prune
+Fetching origin...
+The following worktrees are no longer on the remote and will be removed:
+  fix/parser
+Remove these worktrees and their local branches? [y/N]
 ```
 
 ```console
-$ gh qwt prune --force cli/cli
+$ gh qwt prune --force
 ```
 
+Nothing to clean up:
+
 ```console
-$ gh qwt prune -y cli/cli
+$ gh qwt prune -y
+Fetching origin...
+Nothing to prune.
 ```
 
 ### Notes
 
-> [!CAUTION]
-> `prune` is destructive. It removes the entire repository directory, all worktrees, and the bare repository at `.bare`.
-
-- Use [`rm`](#rm) to remove a single worktree instead of the entire repository.
+- `prune` only removes worktrees whose branch *had* a remote counterpart that is now gone; it never
+  guesses based on merge status, since a squash- or rebase-merged branch's commits are never
+  ancestors of the result on the target branch.
+- Use [`remove`](#remove)/`rm` to remove a worktree or an entire repository by name.
 - `prune` operates under the resolved qwt root and does not include the host in the path.

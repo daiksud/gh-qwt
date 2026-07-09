@@ -3,11 +3,11 @@
 # Local smoke test for gh-qwt.
 #
 # Builds the binary and exercises the full command lifecycle
-# (root -> get -> add -> list -> path -> rm -> prune) against a LOCAL source
-# repository. It is fully offline: no network and no GitHub authentication are
-# required, and it never touches your real qwt root or gh extension state
-# (everything runs in an isolated temporary directory that is cleaned up on
-# exit).
+# (root -> get -> add -> list -> path -> remove/rm -> prune -> remove) against
+# a LOCAL source repository. It is fully offline: no network and no GitHub
+# authentication are required, and it never touches your real qwt root or gh
+# extension state (everything runs in an isolated temporary directory that is
+# cleaned up on exit).
 #
 # Usage:
 #   script/smoke-test.sh
@@ -133,16 +133,34 @@ assert_path_eq "$(qwt path acme/widget/feature/login)" "$REPO/feature/login" "pa
 assert_path_eq "$(qwt path acme/widget)" "$REPO" "path owner/repo"
 assert_exit 2 "malformed path argument exits 2" qwt path solo
 
-step "rm (with --delete-branch)"
-( cd "$REPO/main" && qwt rm --delete-branch feature/login >/dev/null )
-assert_gone "$REPO/feature/login"
-assert_eq "$(git -C "$REPO" branch --list feature/login)" "" "local branch feature/login deleted"
+step "remove / rm (single worktree, both invocation forms)"
+# `rm` is an alias for `remove`; a bare branch name is resolved by discovering
+# the repository from the current directory.
+( cd "$REPO/main" && qwt rm --delete-branch topic/demo >/dev/null )
+assert_gone "$REPO/topic/demo"
+assert_eq "$(git -C "$REPO" branch --list topic/demo)" "" "local branch topic/demo deleted"
 assert_exit 1 "removing a non-existent worktree fails" bash -c "cd '$REPO/main' && '$BIN' rm nope"
 
-step "prune"
-qwt prune -y acme/widget >/dev/null
+# An explicit owner/repo/branch spec removes a single worktree from anywhere,
+# without discovery.
+qwt add --repo acme/widget again/branch >/dev/null
+assert_dir "$REPO/again/branch"
+qwt remove acme/widget/again/branch >/dev/null
+assert_gone "$REPO/again/branch"
+assert_dir "$REPO"
+
+step "prune (remote-aware cleanup, git fetch --prune style)"
+# Simulate the remote deleting feature/login's branch, e.g. after a merged PR.
+git -C "$SRC" branch -D feature/login >/dev/null
+( cd "$REPO/main" && qwt prune -y >/dev/null )
+assert_gone "$REPO/feature/login"
+assert_eq "$(git -C "$REPO" branch --list feature/login)" "" "local branch feature/login deleted by prune"
+assert_dir "$REPO/main"
+
+step "remove (entire repository)"
+qwt remove --force acme/widget >/dev/null
 assert_gone "$REPO"
-assert_exit 1 "pruning a non-existent repo fails" qwt prune -y no/such
+assert_exit 1 "removing a non-existent repository fails" qwt remove --force no/such
 
 printf '\n%s%d passed, %d failed%s\n' "$BOLD" "$pass" "$fail" "$RESET"
 if [ "$fail" -ne 0 ]; then

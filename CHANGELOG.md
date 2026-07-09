@@ -10,6 +10,25 @@ notes on [GitHub Releases](https://github.com/daiksud/gh-qwt/releases) (see
 
 ## [Unreleased]
 
+### Changed
+
+- **Breaking:** `gh qwt prune` no longer takes an `owner/repo` argument and no longer deletes an
+  entire repository. It now discovers the repository from the current directory (like
+  `git worktree prune`) and removes only worktrees whose branch has an upstream that is gone from
+  `origin` — after refreshing remote-tracking refs with `git fetch origin --prune` and cleaning up
+  stale worktree metadata with `git worktree prune`. A branch that was never pushed, has
+  uncommitted changes, or is the repository's default branch is never touched.
+- **Breaking:** `gh qwt rm` is now an alias for a new `gh qwt remove` command. Removing a single
+  worktree from inside a repository is unchanged. Removing an entire repository (the old `prune
+  <owner>/<repo>` behavior) is now `gh qwt remove <owner>/<repo>` / `gh qwt rm <owner>/<repo>`, run
+  from outside any qwt repository. Use manual `rm -rf "$(gh qwt path owner/repo)"` if this
+  particular relocation causes a problem for an existing script during migration.
+
+### Added
+
+- `gh qwt remove`/`rm` also accepts an explicit `owner/repo/branch` spec to remove a single
+  worktree in a specific repository without first `cd`-ing into it.
+
 ## [0.10.0] - 2026-07-10
 
 ### Changed

@@ -405,6 +405,9 @@ fn rm_removes_worktree_and_optionally_branch() {
     let wt = env.worktree("feature/x");
     assert!(wt.is_dir());
 
+    // `rm` is an alias of `remove`; a bare branch name is resolved by
+    // discovering the repository from the current directory, exactly like
+    // the original `rm`.
     env.cmd_in(&env.worktree("main"))
         .args(["rm", "--delete-branch", "feature/x"])
         .assert()
@@ -431,7 +434,29 @@ fn rm_removes_worktree_and_optionally_branch() {
 }
 
 #[test]
-fn prune_removes_entire_repository() {
+fn remove_primary_name_also_removes_worktree_via_cwd_discovery() {
+    let env = Env::new();
+    env.cmd()
+        .args(["get", &env.src_url, "-b", "main"])
+        .assert()
+        .success();
+    env.cmd()
+        .args(["add", "--repo", "acme/widget", "feature/x"])
+        .assert()
+        .success();
+
+    let wt = env.worktree("feature/x");
+
+    // Same behavior under the primary `remove` name (not just the `rm` alias).
+    env.cmd_in(&env.worktree("main"))
+        .args(["remove", "feature/x"])
+        .assert()
+        .success();
+    assert!(!wt.exists(), "worktree directory should be gone");
+}
+
+#[test]
+fn remove_owner_repo_from_outside_removes_entire_repository() {
     let env = Env::new();
     env.cmd()
         .args(["get", &env.src_url, "-b", "main"])
@@ -439,8 +464,10 @@ fn prune_removes_entire_repository() {
         .success();
     assert!(env.repo_dir().exists());
 
+    // Run from outside any qwt repository (the test process's own cwd), so
+    // the 2-segment spec is resolved explicitly rather than discovered.
     env.cmd()
-        .args(["prune", "-y", "acme/widget"])
+        .args(["remove", "--force", "acme/widget"])
         .assert()
         .success();
     assert!(
@@ -448,16 +475,49 @@ fn prune_removes_entire_repository() {
         "repository tree should be removed"
     );
 
-    // Pruning a non-existent repository fails (exit 1).
+    // Removing a non-existent repository fails (exit 1).
     env.cmd()
-        .args(["prune", "-y", "no/such"])
+        .args(["remove", "--force", "no/such"])
         .assert()
         .failure()
         .code(1);
 }
 
 #[test]
-fn prune_declined_keeps_repository() {
+fn remove_owner_repo_branch_from_outside_removes_only_that_worktree() {
+    let env = Env::new();
+    env.cmd()
+        .args(["get", &env.src_url, "-b", "main"])
+        .assert()
+        .success();
+    env.cmd()
+        .args(["add", "--repo", "acme/widget", "feature/x"])
+        .assert()
+        .success();
+
+    // Explicit owner/repo/branch spec, run from outside any qwt repository:
+    // only that worktree is removed, the rest of the repository stays intact.
+    env.cmd()
+        .args(["remove", "--delete-branch", "acme/widget/feature/x"])
+        .assert()
+        .success();
+    assert!(!env.worktree("feature/x").exists());
+    assert!(env.repo_dir().exists(), "repository should still exist");
+    assert!(env.worktree("main").exists(), "main worktree should remain");
+
+    let out = StdCommand::new("git")
+        .current_dir(env.repo_dir())
+        .args(["branch", "--list", "feature/x"])
+        .output()
+        .unwrap();
+    assert!(
+        String::from_utf8_lossy(&out.stdout).trim().is_empty(),
+        "branch feature/x should be deleted"
+    );
+}
+
+#[test]
+fn remove_declined_keeps_repository() {
     let env = Env::new();
     env.cmd()
         .args(["get", &env.src_url, "-b", "main"])
@@ -466,11 +526,168 @@ fn prune_declined_keeps_repository() {
 
     // Answering "n" at the confirmation prompt leaves the repo intact.
     env.cmd()
-        .args(["prune", "acme/widget"])
+        .args(["remove", "acme/widget"])
         .write_stdin("n\n")
         .assert()
         .success();
     assert!(env.repo_dir().exists(), "repository should still exist");
+}
+
+#[test]
+fn remove_rejects_malformed_spec_outside_repository_with_exit_2() {
+    let env = Env::new();
+
+    // A single segment with no slash, run from outside any qwt repository,
+    // is neither a discoverable branch nor a valid owner/repo[/branch] spec.
+    env.cmd().args(["remove", "solo"]).assert().code(2);
+}
+
+#[test]
+fn prune_removes_worktree_whose_remote_branch_is_gone() {
+    let env = Env::new();
+    env.cmd()
+        .args(["get", &env.src_url, "-b", "main"])
+        .assert()
+        .success();
+    env.cmd()
+        .args(["add", "--repo", "acme/widget", "feature/x"])
+        .assert()
+        .success();
+
+    // Simulate the remote deleting the branch (e.g. after a squash-merged PR).
+    git(&env.src, &["branch", "-D", "feature/x"]);
+
+    env.cmd_in(&env.worktree("main"))
+        .args(["prune", "-y"])
+        .assert()
+        .success()
+        .stdout(predicates::str::contains("feature/x"));
+
+    assert!(
+        !env.worktree("feature/x").exists(),
+        "worktree with a remote-deleted branch should be pruned"
+    );
+    assert!(
+        env.worktree("main").exists(),
+        "the default branch worktree must never be pruned"
+    );
+
+    let out = StdCommand::new("git")
+        .current_dir(env.repo_dir())
+        .args(["branch", "--list", "feature/x"])
+        .output()
+        .unwrap();
+    assert!(
+        String::from_utf8_lossy(&out.stdout).trim().is_empty(),
+        "the local branch should be deleted along with the worktree"
+    );
+}
+
+#[test]
+fn prune_never_touches_branch_without_upstream() {
+    let env = Env::new();
+    env.cmd()
+        .args(["get", &env.src_url, "-b", "main"])
+        .assert()
+        .success();
+    // `totally/new` doesn't exist on the source at all, so `add` creates it
+    // fresh with no upstream configured -- it must never look "prunable"
+    // just because `origin/totally/new` also doesn't exist.
+    env.cmd()
+        .args(["add", "--repo", "acme/widget", "totally/new"])
+        .assert()
+        .success();
+
+    env.cmd_in(&env.worktree("main"))
+        .args(["prune", "-y"])
+        .assert()
+        .success();
+
+    assert!(
+        env.worktree("totally/new").exists(),
+        "a branch that was never pushed must never be pruned"
+    );
+}
+
+#[test]
+fn prune_skips_dirty_candidate() {
+    let env = Env::new();
+    env.cmd()
+        .args(["get", &env.src_url, "-b", "main"])
+        .assert()
+        .success();
+    env.cmd()
+        .args(["add", "--repo", "acme/widget", "feature/x"])
+        .assert()
+        .success();
+
+    git(&env.src, &["branch", "-D", "feature/x"]);
+
+    // An uncommitted (untracked) file makes the worktree dirty.
+    std::fs::write(env.worktree("feature/x").join("untracked.txt"), "wip").unwrap();
+
+    env.cmd_in(&env.worktree("main"))
+        .args(["prune", "-y"])
+        .assert()
+        .success()
+        .stderr(predicates::str::contains("feature/x"));
+
+    assert!(
+        env.worktree("feature/x").exists(),
+        "a dirty candidate must be skipped, not removed"
+    );
+}
+
+#[test]
+fn prune_prints_nothing_to_prune_when_clean() {
+    let env = Env::new();
+    env.cmd()
+        .args(["get", &env.src_url, "-b", "main"])
+        .assert()
+        .success();
+
+    env.cmd_in(&env.worktree("main"))
+        .args(["prune", "-y"])
+        .assert()
+        .success()
+        .stdout(predicates::str::contains("Nothing to prune"));
+}
+
+#[test]
+fn prune_declined_keeps_worktree() {
+    let env = Env::new();
+    env.cmd()
+        .args(["get", &env.src_url, "-b", "main"])
+        .assert()
+        .success();
+    env.cmd()
+        .args(["add", "--repo", "acme/widget", "feature/x"])
+        .assert()
+        .success();
+    git(&env.src, &["branch", "-D", "feature/x"]);
+
+    env.cmd_in(&env.worktree("main"))
+        .arg("prune")
+        .write_stdin("n\n")
+        .assert()
+        .success();
+
+    assert!(
+        env.worktree("feature/x").exists(),
+        "declining the prompt must keep the worktree"
+    );
+}
+
+#[test]
+fn prune_fails_outside_repository() {
+    let env = Env::new();
+    env.cmd()
+        .args(["get", &env.src_url, "-b", "main"])
+        .assert()
+        .success();
+
+    // Run from outside any qwt repository (the test process's own cwd).
+    env.cmd().arg("prune").assert().failure().code(1);
 }
 
 #[test]
