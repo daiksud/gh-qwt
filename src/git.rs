@@ -18,7 +18,10 @@ pub struct Worktree {
     /// porcelain model; not currently surfaced by any command.
     #[allow(dead_code)]
     pub head: Option<String>,
-    /// Whether the worktree is in detached-HEAD state.
+    /// Whether the worktree is in detached-HEAD state. Part of the parsed
+    /// porcelain model; not currently surfaced by any command (`list` uses
+    /// the on-disk relative path for detached worktrees instead).
+    #[allow(dead_code)]
     pub detached: bool,
 }
 
@@ -217,6 +220,52 @@ pub fn remote_branch_exists(repo_dir: &Path, branch: &str) -> Result<bool> {
         Some(repo_dir),
         &["show-ref", "--verify", "--quiet", &remote_ref],
     )
+}
+
+/// Refresh remote-tracking refs and drop ones the remote no longer has:
+/// `git -C <repo_dir> fetch origin --prune`.
+///
+/// After this, [`remote_branch_exists`] reflects the remote's current state:
+/// a branch that used to exist on `origin` but was deleted there (typically
+/// after a merge) no longer shows up.
+pub fn fetch_prune(repo_dir: &Path) -> Result<()> {
+    run(Some(repo_dir), &["fetch", "origin", "--prune"])
+}
+
+/// Clean up stale worktree administrative metadata:
+/// `git -C <repo_dir> worktree prune`.
+///
+/// This only removes bookkeeping for worktrees whose directory is already
+/// gone (for example, removed by hand with `rm -rf` instead of `gh qwt
+/// remove`/`rm`). It never touches a worktree directory that still exists.
+pub fn worktree_prune(repo_dir: &Path) -> Result<()> {
+    run(Some(repo_dir), &["worktree", "prune"])
+}
+
+/// Whether `branch` has (or had) an upstream configured, via
+/// `git -C <repo_dir> config --get branch.<branch>.remote`.
+///
+/// This config entry is set by a tracking checkout (see
+/// [`worktree_add_tracking`] and [`worktree_add_existing`]) and, unlike the
+/// remote-tracking ref itself, is **not** removed by [`fetch_prune`]. That
+/// makes it the right signal for "this branch used to track a remote branch
+/// that is now gone" as opposed to "this branch was never pushed at all" --
+/// the latter must never be treated as safe to prune.
+pub fn branch_has_upstream(repo_dir: &Path, branch: &str) -> Result<bool> {
+    success(
+        Some(repo_dir),
+        &["config", "--get", &format!("branch.{branch}.remote")],
+    )
+}
+
+/// Whether the worktree at `path` has uncommitted changes or untracked
+/// files, via `git -C <path> status --porcelain`.
+///
+/// Used to make sure an automatic cleanup (like `prune`) never discards
+/// local work, even in a worktree that otherwise looks safe to remove.
+pub fn worktree_is_dirty(path: &Path) -> Result<bool> {
+    let status = output(Some(path), &["status", "--porcelain"])?;
+    Ok(!status.is_empty())
 }
 
 /// Detect the default branch via `git ls-remote --symref <url> HEAD`,

@@ -68,10 +68,10 @@ See the normative [directory layout reference](docs/references/directory-layout/
 | `gh qwt get <owner>/<repo>` | Clone (bare) and create the default-branch worktree |
 | `gh qwt add <branch>` | Create a worktree for a new or existing branch |
 | `gh qwt list` | List repositories and their worktrees |
-| `gh qwt rm <branch>` | Remove a worktree |
+| `gh qwt remove <branch>` (aliased `rm`) | Remove a worktree, or an entire repository (`owner/repo`) |
 | `gh qwt root` | Print the resolved qwt root |
 | `gh qwt path [<spec>]` | Print a worktree path (for `cd`) |
-| `gh qwt prune <owner>/<repo>` | Remove an entire repository tree |
+| `gh qwt prune` | Remove worktrees whose branch is gone from the remote |
 
 Full details in the [CLI reference](docs/references/cli/).
 

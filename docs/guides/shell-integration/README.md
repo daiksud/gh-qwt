@@ -72,7 +72,9 @@ To make it persistent, add it to your fish configuration, such as `~/.config/fis
 
 ## Add a fuzzy worktree picker
 
-If you have many worktrees, combine `gh qwt list -p` with a fuzzy finder:
+If you have many worktrees, combine `gh qwt list -p` (`--full-path`) with a fuzzy finder. `list`
+prints a flat, sorted list of absolute paths — no repository headers, no indentation — so every
+line fzf shows you is already a valid `cd` target:
 
 ```bash
 qcdf() { local d; d=$(gh qwt list -p | fzf) && cd "$d"; }
@@ -84,8 +86,14 @@ Usage:
 $ qcdf
 ```
 
-The picker receives paths from `gh qwt list -p`, lets you choose one, and changes into the
-selected worktree.
+The picker receives one worktree path per line from `gh qwt list -p`, lets you choose one, and
+changes into the selected worktree.
+
+> [!TIP]
+> Narrow the picker's input with `list`'s own filtering before it reaches fzf, for example
+> `gh qwt list -p fix | fzf`, which only offers worktrees whose `owner/repo/branch` contains
+> `fix`. See the [CLI reference](../../references/cli/#list) for the full `<query>`/`--exact`
+> syntax.
 
 > [!NOTE]
 > `fzf` and `peco` are optional external tools. They are not built into `gh qwt`; install one
