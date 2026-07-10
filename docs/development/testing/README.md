@@ -125,7 +125,8 @@ After `gh qwt get`, assert the managed checkout shape:
 Then exercise the rest of the command surface offline:
 
 ```bash
-gh qwt add feature/example
+# From a qwt worktree, create and enter the new worktree in the current shell.
+worktree="$(gh qwt add feature/example)" && cd "$worktree"
 gh qwt list
 gh qwt path feature/example
 gh qwt rm feature/example
@@ -135,6 +136,8 @@ gh qwt prune
 Suggested assertions for those commands:
 
 - `add` creates a new worktree for the requested branch.
+- `add` prints only the created path, so `worktree="$(gh qwt add feature/example)" && cd "$worktree"`
+  enters it in bash or zsh.
 - `list` includes existing worktrees and omits removed ones.
 - `path` prints the expected path inside the qwt root.
 - `rm` removes the worktree without deleting the bare repository.
@@ -201,8 +204,9 @@ export QWT_ROOT="$HOME/qwt-demo"
 # Exercise the commands against a real repository.
 gh qwt get OWNER/REPO           # bare clone + default-branch worktree
 gh qwt list
-gh qwt add my-branch --repo OWNER/REPO
-cd "$(gh qwt path OWNER/REPO/my-branch)"   # or use the qcd shell function
+# Create and enter the new worktree.
+worktree="$(gh qwt add --repo OWNER/REPO my-branch)" && cd "$worktree"
+# After returning to another worktree, remove it.
 gh qwt rm my-branch --delete-branch
 gh qwt prune OWNER/REPO
 

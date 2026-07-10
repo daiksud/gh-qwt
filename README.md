@@ -6,6 +6,10 @@
 **worktree directory**, so you can work on many branches side by side without stashing,
 re-cloning, or thrashing a single working tree.
 
+> [!WARNING]
+> **Pre-1.0 software.** `gh-qwt` is in the v0 series. Its CLI behavior, standard output, shell
+> integration, and documentation may change incompatibly before 1.0.
+
 > [!NOTE]
 > **Built for GitHub.** Unlike [ghq](https://github.com/x-motemen/ghq), which manages repositories
 > across many hosts and version-control systems, `gh-qwt` targets **GitHub exclusively**: it ships as
@@ -18,6 +22,11 @@ $ gh qwt get cli/cli
 
 $ gh qwt add fix/parser
 ~/qwt/cli/cli/fix/parser     # worktree for a new branch
+
+# In bash or zsh, from the default-branch worktree, create and enter another worktree:
+$ worktree="$(gh qwt add fix/lexer)" && cd "$worktree"
+$ pwd
+~/qwt/cli/cli/fix/lexer
 ```
 
 ## Installation

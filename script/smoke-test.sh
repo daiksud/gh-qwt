@@ -111,11 +111,14 @@ step "get error handling"
 assert_exit 1 "second get into an existing repo fails" qwt get "$SRC_URL"
 assert_exit 2 "invalid repo spec exits 2" qwt get "a/b/c"
 
-step "add (existing branch, new branch, collision)"
+step "add (existing branch, create and enter, collision)"
 qwt add --repo acme/widget feature/login >/dev/null
 assert_dir "$REPO/feature/login"
 assert_eq "$(git -C "$REPO/feature/login" branch --show-current)" "feature/login" "existing branch attached"
-( cd "$REPO/main" && qwt add topic/demo >/dev/null )
+cd "$REPO/main"
+worktree="$(qwt add topic/demo)" && cd "$worktree"
+assert_path_eq "$PWD" "$(cd "$REPO/topic/demo" && pwd -P)" "command substitution enters new worktree"
+cd "$REPO_ROOT"
 assert_dir "$REPO/topic/demo"
 assert_eq "$(git -C "$REPO/topic/demo" branch --show-current)" "topic/demo" "new branch created via discovery"
 assert_exit 1 "prefix collision (topic vs topic/demo) is rejected" qwt add --repo acme/widget topic
