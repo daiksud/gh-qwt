@@ -33,6 +33,10 @@ Exhaustive command reference for `gh qwt`, the `gh-qwt` GitHub CLI extension.
 $ gh qwt <command> [flags] [args]
 ```
 
+> [!WARNING]
+> **Pre-1.0 software.** `gh-qwt` is in the v0 series. Command behavior, standard output, shell
+> integration, and documentation may change incompatibly before 1.0.
+
 It clones GitHub repositories as one bare repository plus per-branch worktrees. The on-disk layout is described in the [directory layout reference](../directory-layout/).
 
 ### Usage
@@ -168,6 +172,21 @@ If the branch exists on the remote, `add` creates a tracking worktree for that b
 
 Branch names containing `/` create nested worktree directories. For example, `fix/parser` becomes `<root>/cli/cli/fix/parser`.
 
+On success, `add` writes only the new worktree's path to standard output. In bash or zsh, create
+and enter the worktree while preserving a failed `add` status:
+
+```bash
+worktree="$(gh qwt add fix/lexer)" && cd "$worktree"
+```
+
+For fish, use:
+
+```fish
+set worktree (gh qwt add fix/lexer); and cd "$worktree"
+```
+
+`cd` must run in the current shell, so piping into it cannot change your current directory.
+
 ### Arguments
 
 | Argument | Description |
@@ -212,7 +231,9 @@ $ gh qwt add --repo cli/cli --from trunk fix/parser
 
 - Existing remote branches are created as tracking worktrees.
 - New branches are created from `--from <ref>` or the default branch.
-- Use [`path`](#path) when you need the absolute worktree path for `cd` or scripts.
+- On success, `add` prints the new worktree path, which can be passed to `cd` with command
+  substitution. Use [`path`](#path) to resolve a repository or an existing worktree without
+  creating anything.
 
 ## list
 

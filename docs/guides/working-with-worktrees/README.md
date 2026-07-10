@@ -15,6 +15,7 @@ Use this guide when you already have a repository under your **qwt root** and wa
 
 - [Mental model](#mental-model)
 - [Add a worktree for a new branch](#add-a-worktree-for-a-new-branch)
+- [Create and enter a worktree](#create-and-enter-a-worktree)
 - [Add a worktree for an existing remote branch](#add-a-worktree-for-an-existing-remote-branch)
 - [Branches with slashes](#branches-with-slashes)
 - [Run from anywhere with `--repo`](#run-from-anywhere-with---repo)
@@ -86,6 +87,30 @@ $ gh qwt add fix/parser --from origin/trunk
 ~/qwt/cli/cli/fix/parser
 ```
 
+## Create and enter a worktree
+
+To start working in a new branch immediately, capture `add`'s output and change directories only
+when creation succeeds.
+
+### Bash and zsh
+
+```bash
+$ cd ~/qwt/cli/cli/trunk
+worktree="$(gh qwt add fix/lexer)" && cd "$worktree"
+```
+
+### Fish
+
+```fish
+cd ~/qwt/cli/cli/trunk
+set worktree (gh qwt add fix/lexer); and cd "$worktree"
+```
+
+On success, `gh qwt add` writes only the new worktree's path to standard output. Both forms run
+`cd` in your current shell only when `add` succeeds. Do not use
+`gh qwt add fix/parser | cd`: commands in a pipeline run outside the parent shell, so that form
+cannot change your current directory.
+
 ## Add a worktree for an existing remote branch
 
 If `fix/parser` already exists on `origin`, the same command creates a tracking worktree instead of a brand-new branch:
@@ -135,6 +160,13 @@ In scripts, pass the same flag without relying on your current directory:
 
 ```bash
 gh qwt add hotfix --repo cli/cli
+```
+
+To create and enter it from anywhere in an interactive shell, use the same flag inside command
+substitution:
+
+```bash
+worktree="$(gh qwt add --repo cli/cli hotfix)" && cd "$worktree"
 ```
 
 | Flag | Use it when… |

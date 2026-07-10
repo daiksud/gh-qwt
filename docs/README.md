@@ -18,6 +18,10 @@ Documentation for **using** `gh qwt` — a GitHub CLI extension that clones each
 > version-control systems), `gh-qwt` is built specifically for GitHub — it is a GitHub CLI (`gh`)
 > extension and uses `gh` for authentication and GitHub API access.
 
+> [!WARNING]
+> **Pre-1.0 software.** `gh-qwt` is in the v0 series. Its CLI behavior, standard output, shell
+> integration, and documentation may change incompatibly before 1.0.
+
 **New here?** Start with **[Getting started](guides/getting-started/)**.
 
 ## Map

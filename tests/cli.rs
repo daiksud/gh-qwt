@@ -163,18 +163,26 @@ fn add_creates_existing_and_new_branch_worktrees() {
         .success();
 
     // Existing branch present at clone time -> attach.
+    let feature_x = env.worktree("feature/x");
     env.cmd()
         .args(["add", "--repo", "acme/widget", "feature/x"])
         .assert()
-        .success();
-    assert_eq!(current_branch(&env.worktree("feature/x")), "feature/x");
+        .success()
+        .stdout(format!("{}\n", feature_x.display()));
+    assert_eq!(current_branch(&feature_x), "feature/x");
 
     // Brand-new branch, discovered from within the repo tree.
-    env.cmd_in(&env.worktree("main"))
+    let topic_new = env.worktree("topic/new");
+    let assertion = env
+        .cmd_in(&env.worktree("main"))
         .args(["add", "topic/new"])
         .assert()
         .success();
-    assert_eq!(current_branch(&env.worktree("topic/new")), "topic/new");
+    // Repository discovery starts from `current_dir`, which resolves macOS's
+    // `/var` -> `/private/var` symlink before `add` prints the destination.
+    let topic_new_output = std::fs::canonicalize(&topic_new).unwrap();
+    assertion.stdout(format!("{}\n", topic_new_output.display()));
+    assert_eq!(current_branch(&topic_new), "topic/new");
 }
 
 #[test]
@@ -193,7 +201,8 @@ fn add_rejects_prefix_collision() {
         .args(["add", "--repo", "acme/widget", "topic/child"])
         .assert()
         .failure()
-        .code(1);
+        .code(1)
+        .stdout("");
 }
 
 #[test]
