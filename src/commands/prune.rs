@@ -97,6 +97,7 @@ pub fn run(args: Args) -> Result<()> {
         // Already verified clean above, so this should never hit the
         // dirty-worktree safety check that a plain `worktree remove` has.
         git::worktree_remove(&repo_dir, &candidate.path, false)?;
+        repo::remove_empty_worktree_ancestors(&repo_dir, &candidate.path)?;
         git::branch_delete(&repo_dir, &candidate.branch)?;
         println!("Removed {}", candidate.branch);
     }

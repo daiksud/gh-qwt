@@ -3,8 +3,9 @@
 //! See `docs/development/specification/README.md`
 //! (Repo-spec parsing, Path building, Repo discovery, Bare repository requirements).
 
-use anyhow::{bail, Result};
+use anyhow::{bail, Context, Result};
 use std::fs;
+use std::io;
 use std::path::{Path, PathBuf};
 
 /// Name of the bare-repository directory inside a qwt-managed repository.
@@ -136,6 +137,66 @@ pub fn worktree_in(repo_dir: &Path, branch: &str) -> PathBuf {
         .fold(repo_dir.to_path_buf(), |path, segment| path.join(segment))
 }
 
+/// Remove empty ancestor directories of a worktree path under `repo_dir`.
+///
+/// Starts at `removed_worktree`'s parent and walks upward until `repo_dir`,
+/// removing only empty directories and stopping at the first non-empty one.
+pub fn remove_empty_worktree_ancestors(repo_dir: &Path, removed_worktree: &Path) -> Result<()> {
+    let canonical_repo_dir = canonicalize_existing(repo_dir).with_context(|| {
+        format!(
+            "failed to canonicalize repository directory {}",
+            repo_dir.display()
+        )
+    })?;
+    let mut current = removed_worktree.parent().map(Path::to_path_buf);
+
+    while let Some(raw_dir) = current {
+        let dir = match canonicalize_existing(&raw_dir) {
+            Ok(dir) => dir,
+            Err(err) if err.kind() == io::ErrorKind::NotFound => {
+                current = raw_dir.parent().map(Path::to_path_buf);
+                continue;
+            }
+            Err(err) => {
+                return Err(err).with_context(|| {
+                    format!(
+                        "failed to canonicalize worktree ancestor {}",
+                        raw_dir.display()
+                    )
+                });
+            }
+        };
+
+        if dir == canonical_repo_dir {
+            break;
+        }
+        if !dir.starts_with(&canonical_repo_dir) {
+            bail!(
+                "refusing to remove directory outside repository: {}",
+                dir.display()
+            );
+        }
+
+        match fs::remove_dir(&dir) {
+            Ok(()) => {
+                current = dir.parent().map(Path::to_path_buf);
+            }
+            Err(err) if err.kind() == io::ErrorKind::DirectoryNotEmpty => break,
+            Err(err) if err.kind() == io::ErrorKind::NotFound => {
+                current = dir.parent().map(Path::to_path_buf);
+            }
+            Err(err) => {
+                return Err(anyhow::anyhow!(
+                    "failed to remove empty directory {}: {err}",
+                    dir.display()
+                ));
+            }
+        }
+    }
+
+    Ok(())
+}
+
 /// Return `true` if `dir` is a qwt-managed repository: it contains `.bare` and a
 /// `.git` pointer file whose contents identify `./.bare`.
 pub fn is_qwt_repo(dir: &Path) -> bool {
@@ -157,14 +218,7 @@ pub fn is_qwt_repo(dir: &Path) -> bool {
 /// Discover the qwt repository root by walking up from `start` to the first
 /// ancestor directory that [`is_qwt_repo`]. Fails if none is found.
 pub fn discover_repo_root(start: &Path) -> Result<PathBuf> {
-    let mut current = start.canonicalize().unwrap_or_else(|_| start.to_path_buf());
-
-    // `std::fs::canonicalize` on Windows returns an extended-length path
-    // (\\?\C:\...). Strip that prefix so downstream paths and git invocations
-    // use the conventional form. This has no effect on non-Windows paths.
-    if let Some(stripped) = current.to_str().and_then(|s| s.strip_prefix(r"\\?\")) {
-        current = PathBuf::from(stripped);
-    }
+    let mut current = canonicalize_existing(start).unwrap_or_else(|_| start.to_path_buf());
 
     loop {
         if is_qwt_repo(&current) {
@@ -175,6 +229,28 @@ pub fn discover_repo_root(start: &Path) -> Result<PathBuf> {
             bail!("no qwt repository found from {}", start.display());
         }
     }
+}
+
+/// Canonicalize an existing path and convert Windows verbatim paths to their
+/// conventional form so equivalent paths can be compared safely.
+fn canonicalize_existing(path: &Path) -> io::Result<PathBuf> {
+    fs::canonicalize(path).map(strip_windows_verbatim_prefix)
+}
+
+/// Strip the Windows extended-length prefix returned by `canonicalize`.
+fn strip_windows_verbatim_prefix(path: PathBuf) -> PathBuf {
+    let Some(path) = path.to_str() else {
+        return path;
+    };
+
+    if let Some(unc) = path.strip_prefix(r"\\?\UNC\") {
+        return PathBuf::from(format!(r"\\{unc}"));
+    }
+    if let Some(path) = path.strip_prefix(r"\\?\") {
+        return PathBuf::from(path);
+    }
+
+    PathBuf::from(path)
 }
 
 /// Ensure adding a worktree for `branch` under `repo_dir` does not collide by
@@ -405,6 +481,43 @@ mod tests {
             discover_repo_root(&nested)?.canonicalize()?,
             repo.canonicalize()?
         );
+
+        Ok(())
+    }
+
+    #[test]
+    fn strips_windows_verbatim_prefix() {
+        assert_eq!(
+            strip_windows_verbatim_prefix(PathBuf::from(r"\\?\C:\qwt")),
+            PathBuf::from(r"C:\qwt")
+        );
+        assert_eq!(
+            strip_windows_verbatim_prefix(PathBuf::from(r"\\?\UNC\server\share\qwt")),
+            PathBuf::from(r"\\server\share\qwt")
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn removes_empty_ancestors_with_a_symlinked_worktree_path() -> Result<()> {
+        use std::os::unix::fs::symlink;
+
+        let temp = tempdir()?;
+        let repo = temp.path().join("repo");
+        let parent = repo.join("feature");
+        fs::create_dir_all(&parent)?;
+
+        let repo_alias = temp.path().join("repo-alias");
+        symlink(&repo, &repo_alias)?;
+        let removed_worktree = repo_alias.join("feature").join("x");
+
+        remove_empty_worktree_ancestors(&repo.canonicalize()?, &removed_worktree)?;
+        assert!(!parent.exists(), "empty worktree parent should be removed");
+        assert!(repo.exists(), "repository root must remain");
+
+        // The worktree remover may already have removed an empty parent.
+        // Treat that as success and continue safely to the repository root.
+        remove_empty_worktree_ancestors(&repo.canonicalize()?, &removed_worktree)?;
 
         Ok(())
     }
