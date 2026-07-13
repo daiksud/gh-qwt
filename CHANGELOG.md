@@ -10,6 +10,14 @@ notes on [GitHub Releases](https://github.com/daiksud/gh-qwt/releases) (see
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-07-13
+
+### Fixed
+
+- `gh qwt prune` and `gh qwt remove`/`rm` now remove empty parent directories left by
+  slash-named worktrees without failing when repository and worktree paths use different symlinked,
+  canonicalized, or Windows verbatim-path representations.
+
 ## [0.11.0] - 2026-07-10
 
 ### Changed
@@ -69,7 +77,8 @@ Initial release.
 - Precompiled release binaries for `darwin-arm64`, `linux-amd64`, `linux-arm64`, and
   `windows-amd64`, distributed via GitHub Releases for `gh extension install`.
 
-[Unreleased]: https://github.com/daiksud/gh-qwt/compare/v0.11.0...HEAD
+[Unreleased]: https://github.com/daiksud/gh-qwt/compare/v0.12.0...HEAD
+[0.12.0]: https://github.com/daiksud/gh-qwt/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/daiksud/gh-qwt/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/daiksud/gh-qwt/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/daiksud/gh-qwt/releases/tag/v0.9.0
