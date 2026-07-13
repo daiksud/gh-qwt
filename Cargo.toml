@@ -1,6 +1,6 @@
 [package]
 name = "gh-qwt"
-version = "0.11.0"
+version = "0.12.0"
 edition = "2021"
 description = "ghq reimagined around git worktrees, as a GitHub CLI extension"
 repository = "https://github.com/daiksud/gh-qwt"
