@@ -15,8 +15,8 @@ notes on [GitHub Releases](https://github.com/daiksud/gh-qwt/releases) (see
 ### Fixed
 
 - `gh qwt prune` and `gh qwt remove`/`rm` now remove empty parent directories left by
-  slash-named worktrees without failing when repository and worktree paths use different symlink,
-  canonical, or Windows verbatim-path representations.
+  slash-named worktrees without failing when repository and worktree paths use different symlinked,
+  canonicalized, or Windows verbatim-path representations.
 
 ## [0.11.0] - 2026-07-10
 
