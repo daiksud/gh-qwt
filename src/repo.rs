@@ -5,6 +5,7 @@
 
 use anyhow::{bail, Result};
 use std::fs;
+use std::io;
 use std::path::{Path, PathBuf};
 
 /// Name of the bare-repository directory inside a qwt-managed repository.
@@ -134,6 +135,44 @@ pub fn worktree_in(repo_dir: &Path, branch: &str) -> PathBuf {
         .split('/')
         .filter(|segment| !segment.is_empty())
         .fold(repo_dir.to_path_buf(), |path, segment| path.join(segment))
+}
+
+/// Remove empty ancestor directories of a worktree path under `repo_dir`.
+///
+/// Starts at `removed_worktree`'s parent and walks upward until `repo_dir`,
+/// removing only empty directories and stopping at the first non-empty one.
+pub fn remove_empty_worktree_ancestors(repo_dir: &Path, removed_worktree: &Path) -> Result<()> {
+    let mut current = removed_worktree.parent();
+
+    while let Some(dir) = current {
+        if dir == repo_dir {
+            break;
+        }
+        if !dir.starts_with(repo_dir) {
+            bail!(
+                "refusing to remove directory outside repository: {}",
+                dir.display()
+            );
+        }
+
+        match fs::remove_dir(dir) {
+            Ok(()) => {
+                current = dir.parent();
+            }
+            Err(err) if err.kind() == io::ErrorKind::DirectoryNotEmpty => break,
+            Err(err) if err.kind() == io::ErrorKind::NotFound => {
+                current = dir.parent();
+            }
+            Err(err) => {
+                return Err(anyhow::anyhow!(
+                    "failed to remove empty directory {}: {err}",
+                    dir.display()
+                ));
+            }
+        }
+    }
+
+    Ok(())
 }
 
 /// Return `true` if `dir` is a qwt-managed repository: it contains `.bare` and a

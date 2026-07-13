@@ -73,6 +73,7 @@ fn remove_worktree(repo_dir: &Path, branch: &str, force: bool, delete_branch: bo
     }
 
     git::worktree_remove(repo_dir, &dest, force)?;
+    repo::remove_empty_worktree_ancestors(repo_dir, &dest)?;
 
     if delete_branch {
         git::branch_delete(repo_dir, branch)?;

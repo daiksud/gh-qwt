@@ -422,6 +422,10 @@ fn rm_removes_worktree_and_optionally_branch() {
         .assert()
         .success();
     assert!(!wt.exists(), "worktree directory should be gone");
+    assert!(
+        !env.worktree("feature").exists(),
+        "empty parent directory should be cleaned up"
+    );
 
     // The local branch should have been deleted too.
     let out = StdCommand::new("git")
@@ -462,6 +466,10 @@ fn remove_primary_name_also_removes_worktree_via_cwd_discovery() {
         .assert()
         .success();
     assert!(!wt.exists(), "worktree directory should be gone");
+    assert!(
+        !env.worktree("feature").exists(),
+        "empty parent directory should be cleaned up"
+    );
 }
 
 #[test]
@@ -577,6 +585,10 @@ fn prune_removes_worktree_whose_remote_branch_is_gone() {
         "worktree with a remote-deleted branch should be pruned"
     );
     assert!(
+        !env.worktree("feature").exists(),
+        "empty parent directory should be cleaned up"
+    );
+    assert!(
         env.worktree("main").exists(),
         "the default branch worktree must never be pruned"
     );
@@ -589,6 +601,45 @@ fn prune_removes_worktree_whose_remote_branch_is_gone() {
     assert!(
         String::from_utf8_lossy(&out.stdout).trim().is_empty(),
         "the local branch should be deleted along with the worktree"
+    );
+}
+
+#[test]
+fn prune_keeps_parent_directory_when_another_nested_worktree_exists() {
+    let env = Env::new();
+    env.cmd()
+        .args(["get", &env.src_url, "-b", "main"])
+        .assert()
+        .success();
+    git(&env.src, &["branch", "feature/y"]);
+    env.cmd()
+        .args(["add", "--repo", "acme/widget", "feature/x"])
+        .assert()
+        .success();
+    env.cmd()
+        .args(["add", "--repo", "acme/widget", "feature/y"])
+        .assert()
+        .success();
+
+    git(&env.src, &["branch", "-D", "feature/x"]);
+
+    env.cmd_in(&env.worktree("main"))
+        .args(["prune", "-y"])
+        .assert()
+        .success()
+        .stdout(predicates::str::contains("feature/x"));
+
+    assert!(
+        !env.worktree("feature/x").exists(),
+        "deleted branch worktree should be removed"
+    );
+    assert!(
+        env.worktree("feature/y").exists(),
+        "remaining sibling worktree should stay"
+    );
+    assert!(
+        env.worktree("feature").exists(),
+        "parent directory must remain when another nested worktree exists"
     );
 }
 
