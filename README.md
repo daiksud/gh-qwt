@@ -53,6 +53,8 @@ See the normative [directory layout reference](docs/references/directory-layout/
 
 ## Documentation
 
+Browse the rendered documentation at **[daiksud.github.io/gh-qwt](https://daiksud.github.io/gh-qwt/)**.
+
 | Section | What's inside |
 | --- | --- |
 | 📖 [Guides](docs/guides/) | Task-oriented walkthroughs: install, worktrees, configuration, shell |

@@ -5,3 +5,8 @@
 # Locally built extension binary (see docs/development/building-and-releasing)
 /gh-qwt
 /gh-qwt.exe
+
+# Astro documentation site output
+/.pages/node_modules/
+/.pages/.astro/
+/.pages/dist/
