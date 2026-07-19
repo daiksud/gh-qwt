@@ -20,6 +20,27 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  docs:
+    name: Documentation
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: .pages
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: .pages/package.json
+
+      - name: Install documentation dependencies
+        run: bun ci
+
+      - name: Validate documentation site
+        run: bun run validate
+
   lint:
     name: Format & Clippy
     runs-on: ubuntu-latest
